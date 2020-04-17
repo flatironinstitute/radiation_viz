@@ -109,10 +109,13 @@ Structure follows: https://learn.jquery.com/plugins/basic-plugin-creation/
     */
 
     vec3 grid_location(in vec3 offset) {
+        // spherical coordinates using the "3rd major convention"
+        // https://en.wikipedia.org/wiki/Spherical_coordinate_system#Conventions
         //return offset;
         float r = rescale_f(offset[0], i_depth_num, LayerScale);
-        float theta = rescale_f(offset[1], i_row_num, RowScale);
-        float phi = rescale_f(offset[2], i_col_num, ColumnScale);
+        // swapping phi and theta.
+        float phi = rescale_f(offset[1], i_row_num, RowScale);
+        float theta = rescale_f(offset[2], i_col_num, ColumnScale);
         //return vec3(r, theta, phi);
         
         float sint = sin(theta);
@@ -123,7 +126,6 @@ Structure follows: https://learn.jquery.com/plugins/basic-plugin-creation/
         float y = r * sinp * sint;
         float z = r * cosp;
         return vec3(x, y, z);
-        
     }
     `;
 
