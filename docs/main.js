@@ -1,8 +1,9 @@
  
 
 var DATA_DIR = "./processed_data";
+var CONFIG_FILENAME = "./config.json";
 
-var json_data;
+var json_data, json_config;
 var values_array;
 var div_status, context, surfaces, voxel_mesh, surface_mesh;
 var voxel_camera, voxel_renderer, voxel_scene;
@@ -13,11 +14,45 @@ var voxels_initialized = false;
 var surface_initialized = false;
 
 var load_config = function() {
-    debugger;
     div_status = $("#div_status");
-    div_status.html("initializing.")
+    div_status.html("loading configuration.");
+    $.getJSON(CONFIG_FILENAME, process_config).fail(on_load_failure(CONFIG_FILENAME));
+};
+
+var process_config = function(data) {
+    json_config = data
+    div_status.html("initializing.");
+    var files_info = data.files;
+    var chosen_prefix = files_info[0].prefix;
+    // look for prefix in url
+    var url = location.toString();
+    var main_url = url.split("?")[0];
+    for (var i=0; i<files_info.length; i++) {
+        var prefix = files_info[i].prefix;
+        if (url.endsWith(prefix)) {
+            chosen_prefix = prefix;
+        }
+    }
+    // populate the dropdown selection
+    var selection_span = $("#dataset_selection");
+    var selection = $("<select/>").appendTo(selection_span);
+    for (var i=0; i<files_info.length; i++) {
+        var prefix = files_info[i].prefix;
+        var option = $("<option/>");
+        option.attr("value", prefix);
+        option.text(prefix);
+        if (prefix == chosen_prefix) {
+            option.attr("selected", "selected");
+        }
+        selection.append(option);
+    }
+    var select_change = function() {
+        var val = selection.val();
+        document.location.href = main_url + "?q=" + val;
+    };
+    selection.change(select_change)
     //load_json("uniform");
-    load_json("uniform");
+    load_json(chosen_prefix);
 };
 
 var load_json = function(prefix) {

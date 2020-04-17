@@ -1,0 +1,9 @@
+{
+    "files": [
+        {
+            "prefix": "uniform",
+            "bin": "uniform.bin",
+            "json": "uniform.json"
+        }
+    ]
+}
