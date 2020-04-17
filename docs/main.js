@@ -1,4 +1,4 @@
-
+ 
 
 var DATA_DIR = "./processed_data";
 
@@ -142,7 +142,9 @@ var do_plot = function () {
     sync_button.click(sync_surface);
 
     $("#focus_button").click(function() {
-        surfaces.crossing.reset_three_camera(voxel_camera, 2);
+        var camera_shift = 2;
+        surfaces.crossing.reset_three_camera(voxel_camera, camera_shift, voxelControls);
+        surfaces.crossing.reset_three_camera(surface_camera, camera_shift, surfaceControls);
         sync_cameras();
     });
 
