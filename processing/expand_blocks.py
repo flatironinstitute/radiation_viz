@@ -239,8 +239,9 @@ class InterpolateBlocks2:
 
     # try to optimize lookups
     
-    def __init__(self, block_interpolators, default=None, sort_index=2, sort_index2=0):
+    def __init__(self, block_interpolators, default=None):
         blocks = block_interpolators
+        sort_index = 0
         self.x_block_list = sorted((b.maxes[sort_index], b) for b in blocks)
         maxes = blocks[0].maxes
         mins = blocks[0].mins
@@ -251,25 +252,28 @@ class InterpolateBlocks2:
         self.mins = mins
         diff = maxes - mins
         self.diff = diff
-        self.sort_index = sort_index
-        self.sort_index2 = sort_index2
         self.last_block = None
-        max_list0 = []
-        max_tolist = {}
+        max_dict3 = {}
         for b in blocks:
-            max0 = b.maxes[sort_index]
-            max1 = b.maxes[sort_index2]
-            #max_list0.append(max0)
-            list1 = max_tolist.get(max0, [])
-            max_tolist[max0] = list1
-            list1.append((max1, b))
-        max_list0 = sorted(max_tolist.keys())
-        for max0 in list(max_tolist.keys()):
-            s = sorted(max_tolist[max0])
-            ys = [e[0] for e in s]
-            max_tolist[max0] = (s, ys)
-        self.max_list0 = max_list0
-        self.max_tolist = max_tolist
+            (x,y,z) = b.maxes
+            xdict = max_dict3.get(x, {})
+            ydict = xdict.get(y, {})
+            zlist = ydict.get(z, [])
+            zlist.append(b)
+            ydict[z] = zlist
+            xdict[y] = ydict
+            max_dict3[x] = xdict
+        x_order = sorted(max_dict3.keys())
+        self.x_order = x_order
+        for x in x_order:
+            xdict = max_dict3[x]
+            y_order = sorted(xdict.keys())
+            for y in y_order:
+                ydict = xdict[y]
+                z_order = sorted(ydict.keys())
+                xdict[y] = (z_order, ydict)
+            max_dict3[x] = (y_order, xdict)
+        self.max_dict3 = max_dict3
         M = blocks[0].block.max()
         for b in blocks:
             M = max(M, b.block.max())
@@ -316,34 +320,32 @@ class InterpolateBlocks2:
         block = self.last_block
         if (block is None) or (not block.in_range(xyz)):
             #print ("  last block fails", block)
-            sort_index = self.sort_index
-            sort_index2 = self.sort_index2
             block = None
-            x_max_list0 = self.max_list0
-            max_tolist = self.max_tolist
-            x = xyz[sort_index]
-            y = xyz[sort_index2]
-            #print ("  first", x, "then", y)
-            start = bisect_right(x_max_list0, x)
-            #print ("  starting at", start, "of", len(x_max_list0))
-            for i in range(start, len(x_max_list0)):
-                max_x = x_max_list0[i]
-                #print("    testing", i, max_x)
-                if x >= max_x:
-                    #print("    exceeded", x, "breaking")
+            (x, y, z) = xyz
+            max_dict3 = self.max_dict3
+            x_order = self.x_order
+            max_dict3 = self.max_dict3
+            startx = bisect_right(x_order, x)
+            for i in range(startx, len(x_order)):
+                Mx = x_order[i]
+                if (Mx < x) or (block is not None):
                     break
-                (blocks0, list0) = max_tolist[max_x]
-                start1 = bisect_right(list0, y)
-                for j in range(start1, len(blocks0)):
-                    (M, b) = blocks0[j]
-                    if y >= M:
+                (y_order, xdict) = max_dict3[Mx]
+                starty = bisect_right(y_order, y)
+                for j in range(starty, len(y_order)):
+                    My = y_order[j]
+                    if (My < y) or (block is not None):
                         break
-                    if b.in_range(xyz):
-                        block = b
-                        break
-                #if b.in_range(xyz):
-                #    block = b
-                #    break
+                    (z_order, y_dict) = xdict[My]
+                    startz = bisect_right(z_order, z)
+                    for k in range(startz, len(z_order)):
+                        Mz = z_order[k]
+                        if (Mz < z) or (block is not None):
+                            break
+                        zlist = y_dict[Mz]
+                        for b in zlist:
+                            if b.in_range(xyz):
+                                block = b
         if block is not None:
             if substitute:
                 result = substitute
