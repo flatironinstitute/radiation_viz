@@ -81,8 +81,27 @@ class BlockInterpolator:
         (nx, ny, nz) = block.shape
         self.mins = ar(x_offsets[0], y_offsets[0], z_offsets[0])
         self.maxes = ar(x_offsets[nx-1], y_offsets[ny-1], z_offsets[nz-1])
+
+    def lower_border(self):
+        "hash lookup along minimum x,y,z values"
+        (block, x_offsets, y_offsets, z_offsets) = (self.block, self.x_offsets, self.y_offsets, self.z_offsets)
+        (nx, ny, nz) = block.shape
+        border = {}
+        k = 0
+        for i in range(nx):
+            for j in range(ny):
+                border[(x_offsets[i], y_offsets[j], z_offsets[k])] = block[i,j,k]
+        j = 0
+        for i in range(nx):
+            for k in range(nz):
+                border[(x_offsets[i], y_offsets[j], z_offsets[k])] = block[i,j,k]
+        i = 0
+        for k in range(nz):
+            for j in range(ny):
+                border[(x_offsets[i], y_offsets[j], z_offsets[k])] = block[i,j,k]
+        return border
         
-    def expand(self, interpolator, epsilon=1e-10):
+    def expand(self, interpolator):
         old_block = self.block
         (nx, ny, nz) = old_block.shape
         (nx1, ny1, nz1) = (nx-1, ny-1, nz-1)
@@ -102,7 +121,7 @@ class BlockInterpolator:
         def interpolate(i, j, k):
             default = old_block[min(i, nx1), min(j, ny1), min(k, nz1)]
             new_block[i, j, k] = interpolator(
-                ar(new_x_offsets[i]+epsilon, new_y_offsets[j]+epsilon, new_z_offsets[k]+epsilon),
+                ar(new_x_offsets[i], new_y_offsets[j], new_z_offsets[k]),
                 default)
         for i in range(nx+1):
             for j in range(ny+1):
@@ -159,6 +178,7 @@ class BlockInterpolator:
     def __lt__(self, other):
         return self.mins[0] < other.mins[0]
 
+""" HISTORICAL
 class InterpolateBlocks:
     
     def __init__(self, block_interpolators, default=None, sort_index=1):
@@ -234,6 +254,7 @@ class InterpolateBlocks:
             result = default
         self.last_block = block
         return result
+"""
 
 class InterpolateBlocks2:
 
@@ -245,9 +266,13 @@ class InterpolateBlocks2:
         self.x_block_list = sorted((b.maxes[sort_index], b) for b in blocks)
         maxes = blocks[0].maxes
         mins = blocks[0].mins
+        borders = {}
         for b in blocks:
             maxes = np.maximum(maxes, b.maxes)
             mins = np.minimum(mins, b.mins)
+            borders.update(b.lower_border())
+        self.borders = borders
+        self.border_hits = 0
         self.maxes = maxes
         self.mins = mins
         diff = maxes - mins
@@ -294,7 +319,7 @@ class InterpolateBlocks2:
         for (x, b) in self.x_block_list:
             if verbose:
                 count += 1
-                print("block", count, b.block.shape)
+                print("block", count, b.block.shape, self.border_hits)
             eb = b.expand(self.interpolate)
             expanded.append(eb)
             x_values.append(eb.x_offsets)
@@ -315,6 +340,13 @@ class InterpolateBlocks2:
         
     def interpolate(self, xyz, default=None, substitute=None):
         #print("b2 interpolating", xyz)
+        # try to find in precomputed borders
+        borders = self.borders
+        txyz = tuple(xyz)
+        hit = borders.get(txyz, None)
+        if hit is not None:
+            self.border_hits += 1
+            return hit
         result = None
         # see if the last block still works
         block = self.last_block
