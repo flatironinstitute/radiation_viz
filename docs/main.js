@@ -98,8 +98,19 @@ var do_plot = function () {
     var columnScale = new Float32Array(json_data.phi_values);
     context = div_status.feedWebGL2({});
 
-    json_data.grid_mins = [0, 0, 0];
-    json_data.grid_maxes = [json_data.phi_size, json_data.theta_size, json_data.r_size];
+    //json_data.grid_mins = [0, 0, 0];
+    //json_data.grid_maxes = [json_data.phi_size, json_data.theta_size, json_data.r_size];
+    var extremum = function(f, a) {
+        var result = a[0];
+        for (var i=0; i<a.length; i++) {
+            result = f(result, a[i]);
+        }
+        return result;
+    }
+    var mina = function(a) { return extremum(Math.min, a); }
+    var maxa = function(a) { return extremum(Math.max, a); }
+    json_data.grid_mins = [mina(layerScale), mina(rowScale), mina(columnScale), ];
+    json_data.grid_maxes = [maxa(layerScale), maxa(rowScale), maxa(columnScale), ];
 
     var location_parameters = {
         RowScale: rowScale,
@@ -183,17 +194,19 @@ var do_plot = function () {
         sync_cameras();
     });
 
-    var col_slider = set_up_dim_slider("X_slider", json_data.r_size, 2, "R limits");
-    var row_slider = set_up_dim_slider("Y_slider", json_data.theta_size, 1, "theta limits");
-    var layer_slider = set_up_dim_slider("Z_slider", json_data.phi_size, 0, "phi limits");
+    var col_slider = set_up_dim_slider("X_slider", json_data.r_size, 2, "Phi limits");
+    var row_slider = set_up_dim_slider("Y_slider", json_data.theta_size, 1, "Theta limits");
+    var layer_slider = set_up_dim_slider("Z_slider", json_data.phi_size, 0, "R limits");
 };
 
 set_up_dim_slider = function(container, dim, index, label) {
     var $container = $("#"+container);
+    var M = json_data.grid_maxes[index];
+    var m = json_data.grid_mins[index];
     $container.empty();
     $("<div>" + label + "</div>").appendTo($container);
     var slider = $("<div></div>").appendTo($container);
-    var step = Math.max(0.01 * dim, 1);
+    var step = Math.max(0.01, 0.01 * (M - m));
     var update = function () {
         var limits = slider.slider("option", "values");
         json_data.grid_mins[index] = limits[0];
@@ -206,14 +219,14 @@ set_up_dim_slider = function(container, dim, index, label) {
     };
     slider.slider({
         range: true,
-        min: -1,
-        max: dim+1,
+        min: m - step,
+        max: M + step,
         step: step,
-        values: [0, dim],
+        values: [m, M],
         slide: update,
         change: update,
     });
-    json_data.grid_maxes[index] = dim+1;
+    //json_data.grid_maxes[index] = dim+1;
     return slider;
 };
 sync_cameras = function () {
