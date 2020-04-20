@@ -4,6 +4,9 @@ import json
 import os
 import expand_blocks
 
+# save canvas as image
+# https://stackoverflow.com/questions/28299050/how-to-use-filesaver-js-with-canvas/28305948
+
 def a32(x):
     return np.array(x, dtype=np.float32)
 
@@ -95,11 +98,12 @@ class BlockDescriptions:
         e = interp.expand_all(verbose=verbose)
         return self.__class__(e["x_values"], e["y_values"], e["z_values"], e["intensities"], )
 
+""" historical
 class BlockDescriptions2(BlockDescriptions):
 
     def interpolator(self):
         return expand_blocks.interpolator_from_arrays2(self.values, self.rs, self.thetas, self.phis)
-
+"""
 
 def truncate(array, skip):
     (b, k) = array.shape
@@ -139,11 +143,12 @@ def get_values_and_geometry(from_filename, source="prim", index=0, verbose=True)
         for b in range(bb):
             for ir in range(nr):
                 for itheta in range(ntheta):
-                    for iphi in range(nphi):
-                        values[b, ir, itheta, iphi] = values1[b, iphi, itheta, ir]
+                    #for iphi in range(nphi):
+                    #    values[b, ir, itheta, iphi] = values1[b, iphi, itheta, ir]
+                    values[b, ir, itheta, :] = values1[b, :, itheta, ir]
     if verbose:
         print (rs.shape, thetas.shape, phis.shape, values.shape)
-    return BlockDescriptions2(rs, thetas, phis, values)
+    return BlockDescriptions(rs, thetas, phis, values)
 
 def get_viz_values(from_filename, source="prim", index=0, verbose=True):
     f = h5py.File(from_filename, 'r')
@@ -163,5 +168,5 @@ def get_viz_values(from_filename, source="prim", index=0, verbose=True):
                     values[b, ir, itheta, iphi] = values1[b, iphi, itheta, ir]
     if verbose:
         print (rs.shape, thetas.shape, phis.shape, values.shape)
-    return BlockDescriptions2(rs, thetas, phis, values)
+    return BlockDescriptions(rs, thetas, phis, values)
 

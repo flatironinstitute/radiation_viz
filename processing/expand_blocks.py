@@ -256,7 +256,7 @@ class InterpolateBlocks:
         return result
 """
 
-class InterpolateBlocks2:
+class InterpolateBlocks:
 
     # try to optimize lookups
     
@@ -389,6 +389,7 @@ class InterpolateBlocks2:
         self.last_block = block
         return result
 
+"""historical
 def interpolator_from_arrays(intensities, x_values, y_values, z_values):
      blocks = []
      for (index, chunk) in enumerate(intensities):
@@ -398,8 +399,9 @@ def interpolator_from_arrays(intensities, x_values, y_values, z_values):
          b = BlockInterpolator(chunk, x_chunk, y_chunk, z_chunk)
          blocks.append(b)
      return InterpolateBlocks(blocks)
+"""
 
-def interpolator_from_arrays2(intensities, x_values, y_values, z_values):
+def interpolator_from_arrays(intensities, x_values, y_values, z_values):
      blocks = []
      for (index, chunk) in enumerate(intensities):
          x_chunk = x_values[index]
@@ -407,5 +409,5 @@ def interpolator_from_arrays2(intensities, x_values, y_values, z_values):
          z_chunk = z_values[index]
          b = BlockInterpolator(chunk, x_chunk, y_chunk, z_chunk)
          blocks.append(b)
-     return InterpolateBlocks2(blocks)
+     return InterpolateBlocks(blocks)
 
