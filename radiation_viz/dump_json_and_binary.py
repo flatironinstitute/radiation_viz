@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 import json
 import os
-import expand_blocks
+from . import expand_blocks
 
 # save canvas as image
 # https://stackoverflow.com/questions/28299050/how-to-use-filesaver-js-with-canvas/28305948
@@ -76,12 +76,12 @@ class BlockDescriptions:
         json.dump(json_value, json_f, indent=indent)
         json_f.close()
         if verbose:
-            print("wrote json to", json_path)
+            print("    wrote json to", json_path)
         bin_f = open(bin_path, "wb")
         values.ravel().astype(np.float32).tofile(bin_f)
         bin_f.close()
         if verbose:
-            print("wrote binary to", bin_path)
+            print("    wrote binary to", bin_path)
         return(json_fn , bin_fn)
 
     def truncate_r_phi(self, skip, verbose=True):
@@ -90,7 +90,8 @@ class BlockDescriptions:
         phi_values = truncate(self.phis, skip)
         values = self.values[:, ::skip, :, ::skip]
         if verbose:
-            print (r_values.shape, theta_values.shape, phi_values.shape, values.shape)
+            print("    truncating", self.rs.shape, "by", skip)
+            print ("   to", r_values.shape, theta_values.shape, phi_values.shape, values.shape)
         return self.__class__(r_values, theta_values, phi_values, values)
 
     def expand(self, verbose=True):

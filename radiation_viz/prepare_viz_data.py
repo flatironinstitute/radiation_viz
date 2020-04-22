@@ -9,6 +9,7 @@ import h5py
 import numpy as np
 import shutil
 import json
+from . import dump_json_and_binary
 
 SOURCE_SUFFIX = '.athdf'
 DEFAULT_DIR = "./radiation_viz"
@@ -68,10 +69,11 @@ class Runner:
         if self.verbose:
             print("Loading data from file(s).")
         self.file_readers = {}
+        force_files = args.force or args.clean
         for filename in self.files:
             if self.verbose:
                 print("   loading metadata for", repr(filename))
-                self.file_readers[filename] = FileReader(filename, args.truncated, args.skip, args.force, self.verbose)
+            self.file_readers[filename] = FileReader(filename, args.truncated, args.skip, force_files, self.verbose)
 
     def check_directory(self):
         "Determine whether the output directory needs to be created and initialized."
@@ -126,6 +128,8 @@ class Runner:
         "Create JSON and binary files from inputs files."
         if self.verbose:
             print("Writing output data files.")
+        for filename in self.files:
+            self.file_readers[filename].write_output_files(self.data_directory)
 
     def set_up_configuration(self):
         "Create the configuration file for the visualization."
@@ -183,7 +187,7 @@ class FileReader:
         self.variable_and_skip_to_file_prefix = {}
         for vr in sorted(self.name_to_dataset_and_index):
             if not self.truncated:
-                self.variable_and_skip_to_file_prefix[(vr, None)] = "%s_%s_full"  % (self.file_prefix, vr)
+                self.variable_and_skip_to_file_prefix[(vr, 0)] = "%s_%s_full"  % (self.file_prefix, vr)
             if self.skip:
                 self.variable_and_skip_to_file_prefix[(vr, self.skip)] = "%s_%s_skip_%s"  % (self.file_prefix, vr, self.skip)
         existing_files = 0
@@ -194,12 +198,28 @@ class FileReader:
                     existing_files += 1
                     assert os.path.isfile(path), "Cannot overwrite non-file: " + repr(path)
                     if self.verbose:
-                        print("    found existing file " + repr(path))
+                        print("    Existing file to overwrite " + repr(path))
                 elif self.verbose:
                     print("    File will be created " + repr(path))
         if existing_files > 0 and not self.force:
             assert self.force, "Cannot overwrite existing %s files without --force flag." % existing_files
 
+    def write_output_files(self, to_directory):
+        assert to_directory == self.to_directory
+        source_filename = self.filename
+        for vr_skip in sorted(self.variable_and_skip_to_file_prefix):
+            (vr, skip) = vr_skip
+            to_prefix = self.variable_and_skip_to_file_prefix[vr_skip]
+            if self.verbose:
+                print("    writing expanded data", vr_skip, to_prefix)
+            (ds, index) = self.name_to_dataset_and_index[vr]
+            blocks = dump_json_and_binary.get_values_and_geometry(source_filename, ds, index, self.verbose)
+            if skip:
+                blocks = blocks.truncate_r_phi(skip, self.verbose)
+            # xxxx always expand?  no verbose option
+            expanded = blocks.expand(verbose=False)
+            expanded.dump_files(to_directory, to_prefix, verbose=self.verbose)
+            
 def run():
     rnr = Runner()
     rnr.run()
