@@ -7,9 +7,17 @@ import argparse
 import os
 import h5py
 import numpy as np
+import shutil
 
 SOURCE_SUFFIX = '.athdf'
 DEFAULT_DIR = "./radiation_viz"
+DATA_SUBDIRECTORY = "processed_data"
+CONFIG_FILENAMED = "config.json"
+
+MY_DIR = os.path.dirname(__file__)
+
+def module_path(relative_path):
+    return os.path.join(MY_DIR, relative_path)
 
 class Runner:
 
@@ -21,7 +29,8 @@ class Runner:
         a("--truncated", help="Don't generate full resolution.", action="store_true")
         a("--skip", help="Skip stride for truncated views (0 for none).", type=int, default=4)
         a("--quiet", help="Don't print helpful output.", action="store_true")
-        a("--force", help="Overwrite existing files.", action="store_true")
+        a("--force", help="Don't prompt for verification and overwrite existing files.", action="store_true")
+        a("--clean", help="Delete existing visualization folder if it exists.", action="store_true")
         a("--dry_run", help="List intended actions but don't make permanent changes.", action="store_true")
         a("--launch", help="Start server and attempt to open the visualization in a browser.", action="store_true")
         args = self.args = parser.parse_args()
@@ -36,9 +45,10 @@ class Runner:
         self.check_output_files()
         if self.verbose:
             print()
-            if self.args.dry_run:
-                print ("Dry run complete: not making changes.")
-                return
+        if self.args.dry_run:
+            print ("Dry run complete: not making changes.")
+            return
+        if not self.args.force:
             confirm = input("*** PLEASE CONFIRM: Make changes (Y/N)? ")
             if confirm.upper()[0:1] != "Y":
                 print("Aborting.")
@@ -47,21 +57,24 @@ class Runner:
         self.write_output_files()
         self.set_up_configuration()
 
+    def fix_path(self, path):
+        return os.path.abspath(os.path.expanduser(path))
+
     def load_file_data(self):
         "Load and validate the metadata from data file(s)."
         args = self.args
-        self.files = [os.path.abspath(os.path.expanduser(fn)) for fn in args.filenames]
+        self.files = sorted([self.fix_path(fn) for fn in args.filenames])
         if self.verbose:
             print("Loading data from file(s).")
         self.file_readers = {}
         for filename in self.files:
             if self.verbose:
                 print("   loading metadata for", repr(filename))
-                self.file_readers[filename] = FileReader(filename, args.truncated, args.skip, self.verbose)
+                self.file_readers[filename] = FileReader(filename, args.truncated, args.skip, args.force, self.verbose)
 
     def check_directory(self):
         "Determine whether the output directory needs to be created and initialized."
-        folder = self.to_directory = self.args.to_directory
+        folder = self.to_directory = self.fix_path(self.args.to_directory)
         if self.verbose:
             print("Preparing to install or update visualization directory:", repr(self.to_directory))
         if not os.path.exists(folder):
@@ -71,7 +84,19 @@ class Runner:
         else:
             if not os.path.isdir(folder):
                 raise ValueError("Destination exists and is not a directory: " + repr(folder))
-            self.make_folder = False
+            if self.args.clean:
+                if self.verbose:
+                    print("   existing directory will be deleted.")
+                self.make_folder = True
+            else:
+                if self.verbose:
+                    print("   existing directory will be preserved.")
+                self.make_folder = False
+        if self.make_folder:
+            self.template_folder = module_path("viz_template")
+            assert os.path.isdir(self.template_folder)
+            if self.verbose:
+                print("    Folder data will be cloned from: " + repr(self.template_folder))
 
     def copy_directory_if_needed(self):
         "Set up visualization infrastructure, if it doesn't already exist."
@@ -80,13 +105,21 @@ class Runner:
             if self.verbose:
                 print("Assuming existing directory infrastructure is okay. " + repr(folder))
                 return
+        if os.path.exists(folder):
+            if self.verbose:
+                print("deleting exiting folder " + repr(folder))
+            shutil.rmtree(folder)
         if self.verbose:
             print("Setting up directory " + repr(folder))
+        shutil.copytree(self.template_folder, folder)
 
     def check_output_files(self):
         "Check whether any output files are overwrites."
+        self.data_directory = os.path.join(self.to_directory, DATA_SUBDIRECTORY)
         if self.verbose:
             print("Checking whether output data files exist.")
+        for filename in self.files:
+            self.file_readers[filename].check_output_files(self.data_directory)
 
     def write_output_files(self):
         "Create JSON and binary files from inputs files."
@@ -98,8 +131,9 @@ class Runner:
 
 class FileReader:
 
-    def __init__(self, filename, truncated, skip, verbose):
-        (self.filename, self.truncated, self.skip, self.verbose) = (filename, truncated, skip, verbose)
+    def __init__(self, filename, truncated, skip, force, verbose):
+        (self.filename, self.truncated, self.skip, self.force, self.verbose) = (filename, truncated, skip, force, verbose)
+        assert filename.endswith(SOURCE_SUFFIX), "Filename has incorrect extension: " + repr((filename, SOURCE_SUFFIX))
         assert (not truncated) or skip, "truncated file must have a non-zero skip value " + repr(filename)
         # extract the metadata for quantity locations
         f = h5py.File(filename, 'r')
@@ -121,6 +155,31 @@ class FileReader:
         if self.verbose:
             for (name, dsi) in sorted(name_to_dataset_and_index.items()):
                 print ("    Found", repr(name), "at", dsi, "in", filename)
+
+    def check_output_files(self, to_directory):
+        self.to_directory = to_directory
+        [self.source_dir, self.file_tail] = os.path.split(self.filename)
+        self.file_prefix = self.file_tail[:-len(SOURCE_SUFFIX)]
+        self.out_prefix = self.file_prefix.replace(".", "_")
+        self.variable_and_skip_to_file_prefix = {}
+        for vr in sorted(self.name_to_dataset_and_index):
+            if not self.truncated:
+                self.variable_and_skip_to_file_prefix[(vr, None)] = "%s_%s_full"  % (self.file_prefix, vr)
+            if self.skip:
+                self.variable_and_skip_to_file_prefix[(vr, self.skip)] = "%s_%s_skip_%s"  % (self.file_prefix, vr, self.skip)
+        existing_files = 0
+        for prefix in sorted(self.variable_and_skip_to_file_prefix.values()):
+            for ext in (".json", ".bin"):
+                path = os.path.join(self.to_directory, prefix + ext)
+                if os.path.exists(path):
+                    existing_files += 1
+                    assert os.path.isfile(path), "Cannot overwrite non-file: " + repr(path)
+                    if self.verbose:
+                        print("    found existing file " + repr(path))
+                elif self.verbose:
+                    print("    File will be created " + repr(path))
+        if existing_files > 0 and not self.force:
+            assert self.force, "Cannot overwrite existing %s files without --force flag." % existing_files
 
 def run():
     rnr = Runner()
