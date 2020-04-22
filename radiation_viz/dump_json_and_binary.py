@@ -76,12 +76,12 @@ class BlockDescriptions:
         json.dump(json_value, json_f, indent=indent)
         json_f.close()
         if verbose:
-            print("wrote json to", json_fn)
+            print("wrote json to", json_path)
         bin_f = open(bin_path, "wb")
         values.ravel().astype(np.float32).tofile(bin_f)
         bin_f.close()
         if verbose:
-            print("wrote binary to", bin_fn)
+            print("wrote binary to", bin_path)
         return(json_fn , bin_fn)
 
     def truncate_r_phi(self, skip, verbose=True):
@@ -116,6 +116,7 @@ def truncate(array, skip):
         out[:,i//skip] = array[:, i]
     return out
 
+"""
 def get_values_and_geometry0(from_filename, source="prim", index=0, verbose=True):
     f = h5py.File(from_filename, 'r')
     rs = a32(f["x1f"][:])
@@ -125,6 +126,24 @@ def get_values_and_geometry0(from_filename, source="prim", index=0, verbose=True
     if verbose:
         print (rs.shape, thetas.shape, phis.shape, values.shape)
     return BlockDescriptions(rs, thetas, phis, values)
+"""
+
+def copy_single_value(from_filename, to_filename, source="prim", index=0):
+    "Create small data file with only intensity (eg) for testing/examples."
+    f = h5py.File(from_filename, 'r')
+    out = h5py.File(to_filename, 'w')
+    phis = a32(f["x1f"][:])
+    thetas = a32(f["x2f"][:])
+    rs = a32(f["x3f"][:])
+    values1 = a32(f[source][:][index])
+    (bb, nphi, ntheta, nr) = values1.shape
+    ext_values = values1.reshape((1, bb, nphi, ntheta, nr))
+    out.create_dataset('x1f', data=phis)
+    out.create_dataset('x2f', data=thetas)
+    out.create_dataset('x3f', data=rs)
+    out.create_dataset(source, data=ext_values)
+    out.close()
+    print("from", from_filename, "copied", source, index, "to", to_filename)
 
 def get_values_and_geometry(from_filename, source="prim", index=0, verbose=True):
     f = h5py.File(from_filename, 'r')
@@ -147,6 +166,7 @@ def get_values_and_geometry(from_filename, source="prim", index=0, verbose=True)
                     #    values[b, ir, itheta, iphi] = values1[b, iphi, itheta, ir]
                     values[b, ir, itheta, :] = values1[b, :, itheta, ir]
     if verbose:
+        print("from", from_filename, source, index)
         print (rs.shape, thetas.shape, phis.shape, values.shape)
     return BlockDescriptions(rs, thetas, phis, values)
 
