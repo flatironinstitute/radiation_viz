@@ -10,6 +10,10 @@ import numpy as np
 import shutil
 import json
 from . import dump_json_and_binary
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+import threading
+import time
+import webbrowser
 
 SOURCE_SUFFIX = '.athdf'
 DEFAULT_DIR = "./radiation_viz"
@@ -35,6 +39,7 @@ class Runner:
         a("--clean", help="Delete existing visualization folder if it exists.", action="store_true")
         a("--dry_run", help="List intended actions but don't make permanent changes.", action="store_true")
         a("--launch", help="Start server and attempt to open the visualization in a browser.", action="store_true")
+        a("--view_only", help="Only start server and attempt to open the visualization in a browser.", action="store_true")
         args = self.args = parser.parse_args()
         self.verbose = (not args.quiet) or args.dry_run
         if self.verbose:
@@ -42,22 +47,44 @@ class Runner:
             print("Arguments parsed.")
 
     def run(self):
-        self.load_file_data()
-        self.check_directory()
-        self.check_output_files()
-        if self.verbose:
-            print()
-        if self.args.dry_run:
-            print ("Dry run complete: not making changes.")
-            return
-        if not self.args.force:
-            confirm = input("*** PLEASE CONFIRM: Make changes (Y/N)? ")
-            if confirm.upper()[0:1] != "Y":
-                print("Aborting.")
+        self.to_directory = self.fix_path(self.args.to_directory)
+        if not self.args.view_only:
+            self.load_file_data()
+            self.check_directory()
+            self.check_output_files()
+            if self.verbose:
+                print()
+            if self.args.dry_run:
+                print ("Dry run complete: not making changes.")
                 return
-        self.copy_directory_if_needed()
-        self.write_output_files()
-        self.set_up_configuration()
+            if not self.args.force:
+                confirm = input("*** PLEASE CONFIRM: Make changes (Y/N)? ")
+                if confirm.upper()[0:1] != "Y":
+                    print("Aborting.")
+                    return
+            self.copy_directory_if_needed()
+            self.write_output_files()
+            self.set_up_configuration()
+        if self.args.launch or self.args.view_only:
+            self.launch_server_and_open()
+
+    def launch_server_and_open(self, server_name="localhost", port=9999, server_class=HTTPServer, handler_class=SimpleHTTPRequestHandler):
+        self.port = port
+        if self.verbose:
+            print("Attempting to launch web server and redirect system browser.")
+        url = "http://%s:%s/index.html" % (server_name, port)
+        self.start_delayed_redirect(url)
+        # launch browser rooted at to_directory
+        root = self.to_directory
+        os.chdir(root)
+        server_address = (server_name, port)
+        httpd = server_class(server_address, handler_class)
+        print("Starting simple web server.  Use CONTROL-C to terminate:", url)
+        httpd.serve_forever()
+
+    def start_delayed_redirect(self, url):
+        thread = BrowserRedirect(url)
+        thread.start()
 
     def fix_path(self, path):
         return os.path.abspath(os.path.expanduser(path))
@@ -77,7 +104,7 @@ class Runner:
 
     def check_directory(self):
         "Determine whether the output directory needs to be created and initialized."
-        folder = self.to_directory = self.fix_path(self.args.to_directory)
+        folder = self.to_directory
         if self.verbose:
             print("Preparing to install or update visualization directory:", repr(self.to_directory))
         if not os.path.exists(folder):
@@ -220,6 +247,18 @@ class FileReader:
             expanded = blocks.expand(verbose=False)
             expanded.dump_files(to_directory, to_prefix, verbose=self.verbose)
             
+class BrowserRedirect(threading.Thread):
+
+    def __init__ (self, url, delay=1.0):
+        threading.Thread.__init__(self)
+        self.url = url
+        self.delay = delay
+
+    def run(self):
+        time.sleep(self.delay)
+        print("Attempting to redirect browser to ", self.url)
+        webbrowser.open(self.url, new=1)
+
 def run():
     rnr = Runner()
     rnr.run()
