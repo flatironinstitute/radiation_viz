@@ -8,11 +8,12 @@ import os
 import h5py
 import numpy as np
 import shutil
+import json
 
 SOURCE_SUFFIX = '.athdf'
 DEFAULT_DIR = "./radiation_viz"
 DATA_SUBDIRECTORY = "processed_data"
-CONFIG_FILENAMED = "config.json"
+CONFIG_FILENAME = "config.json"
 
 MY_DIR = os.path.dirname(__file__)
 
@@ -128,6 +129,24 @@ class Runner:
 
     def set_up_configuration(self):
         "Create the configuration file for the visualization."
+        datadir = self.data_directory
+        todir = self.to_directory
+        config_path = os.path.join(todir, CONFIG_FILENAME)
+        files = set(os.listdir(datadir))
+        files_info = []
+        for bin_fn in sorted(files):
+            if bin_fn.endswith(".bin"):
+                prefix = bin_fn[:-4]
+                json_fn = prefix + ".json"
+                if json_fn in files:
+                    files_info.append({"prefix": prefix, "bin": bin_fn, "json": json_fn})
+        config_value = {
+            "files": files_info,
+        }
+        with open(config_path, "w") as out:
+            json.dump(config_value, out, indent=4)
+        if self.verbose:
+            print("Configured %s files in %s." % (len(files_info), config_path))
 
 class FileReader:
 
