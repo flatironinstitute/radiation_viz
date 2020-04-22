@@ -127,7 +127,7 @@ python -m radiation_viz.prepare_viz_data --force
 The `--force` flag allows the script to replace existing files and suppresses the user confirmation.
 
 It takes some time generate the full resolution data files mainly due to logic which "interpolates
-across data block boundaries".
+across data block boundaries".  On my laptop just now the above command took about 10 minutes.
 
 Also note that slider operations and view synchronization in the visualization are not very performant for the high
 resolution data views due the the size of the data.
