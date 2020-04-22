@@ -1,0 +1,29 @@
+{
+    "files": [
+        {
+            "prefix": "small_data_test",
+            "bin": "small_data_test.bin",
+            "json": "small_data_test.json"
+        },
+        {
+            "prefix": "truncated",
+            "bin": "truncated.bin",
+            "json": "truncated.json"
+        },
+        {
+            "prefix": "truncated_expanded",
+            "bin": "truncated_expanded.bin",
+            "json": "truncated_expanded.json"
+        },
+        {
+            "prefix": "uniform",
+            "bin": "uniform.bin",
+            "json": "uniform.json"
+        },
+        {
+            "prefix": "x_full_detail",
+            "bin": "x_full_detail.bin",
+            "json": "x_full_detail.json"
+        }
+    ]
+}

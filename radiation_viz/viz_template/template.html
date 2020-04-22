@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Radiation 3d Visualizations</title>
+    <meta charset="utf-8" />
+    <link
+      href="https://fonts.googleapis.com/css?family=Open+Sans"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./css/normalize.css" />
+    <link rel="stylesheet" href="./css/styles.css" />
+    <link rel="stylesheet" href="./css/jquery-ui.css" />
+  </head>
+
+  <body class="container">
+
+
+    <h4>Radiation 3d Visualizations</h4>
+
+  <div id="div_status">
+    Loading...
+  </div>
+
+  <div>
+    Change the selected data set here: <span id="dataset_selection"></span>
+    -- datasets ending "Nk30" have half the resolution and 8 times the speed
+    compared to datasets ending "Nk60".
+  </div>
+
+    <div class="radiation_grid">
+      <div class="radiation_slider">
+        <div class="radiation_slider_readout" id="value_readout">readout</div>
+        <div class="radiation_slider_slider" id="value_slider">value_slider</div>
+      </div>
+      <div class="grid9_item" id="voxels">
+        Voxel point cloud
+      </div>
+      <div class="grid9_item" id="isosurface">
+        Isosurface
+      </div>
+      <div>
+        <div class="dim_slider" id="X_slider" style="background-color: #f55;">col_slider</div>
+        <div class="dim_slider"  id="Y_slider" style="background-color: #5f5;">row_slider</div>
+        <div class="dim_slider"  id="Z_slider" style="background-color: #55f;">layer_slider</div> 
+      </div>
+      <div class="gradient_div"  id="velocity_gradient">
+        <button id="sync_button">Sync voxels to surface</button>
+        <button id="focus_button">Position camera</button>
+      </div> 
+    </div>
+
+    <script src="./js/three.min.js"></script>
+    <script src="./js/OrbitControls.js"></script>
+    <script src="./js/jquery.min.js"></script>
+    <script src="./js/jquery-ui.js"></script>
+    <script src="./js/feedWebGL.js"></script>
+    <script src="./js/feedbackSurfaces.js"></script>
+    <script src="./js/canvas_2d_widget_helper.js"></script>
+    <script src="./js/dual_canvas_helper.js"></script>
+    <script src="./js/three_sprite_text.js"></script>
+    <script src="./main.js"></script>
+
+    <script>
+      //load_file("json/Fake.json")
+      load_config();
+    </script>
+
+  </body>
+</html>
