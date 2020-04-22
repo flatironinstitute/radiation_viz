@@ -68,7 +68,7 @@ class Runner:
         if self.args.launch or self.args.view_only:
             self.launch_server_and_open()
 
-    def launch_server_and_open(self, server_name="localhost", port=9999, server_class=HTTPServer, handler_class=SimpleHTTPRequestHandler):
+    def launch_server_and_open(self, server_name="0.0.0.0", port=9999, server_class=HTTPServer, handler_class=SimpleHTTPRequestHandler):
         self.port = port
         if self.verbose:
             print("Attempting to launch web server and redirect system browser.")
