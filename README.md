@@ -1,7 +1,8 @@
 # radiation_viz
-Visualizations for astrophysical radiation simulation data.
 
-View the example visualization here:
+## Interactive 3 dimensional visualizations for astrophysical radiation simulation data.
+
+Explore the example visualization here:
 <a href="https://flatironinstitute.github.io/radiation_viz/">https://flatironinstitute.github.io/radiation_viz/</a>.
 
 <img src="screen_shot.png" width="500px"/>
