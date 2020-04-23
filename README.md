@@ -8,8 +8,23 @@ The visualization requires WebGL2 features and may not work on all browsers.
 
 <img src="screen_shot.png" width="500px"/>
 
-This is an experimental project which uses Python 3 for preprocessing of data files and HTML5/Javascript in a
-modern browser like Chrome for presentation. Please install it in development mode to make it easy to update.
+The tool set
+provided by the `radiation_viz` repository
+creates visualizations of astrophysical phenomenon.
+The visualisation interactively translates dense matrices representing quantities such as radiation pressure
+into iso-surface renderings which represent where the quantity achieves a given value.  The source
+dataset matrices are generated
+using numerical simulations.
+
+The `radiation_viz` toolset uses Python 3 for preprocessing of data files and HTML5/Javascript/WebGL2 in a
+modern browser like Chrome for presentation.  The implementation uses
+<a href="https://github.com/flatironinstitute/feedWebGL2">the feedWebGL2</a> 
+(https://github.com/flatironinstitute/feedWebGL2) Javascript library
+for iso-surface generation and the 
+<a href="https://threejs.org/z">the three.js</a> (https://threejs.org/) Javascript library
+for final rendering.
+
+Please install the Python preprocessing module in development mode to make it easy to update.
 You will need a local Python 3 installation (such as one installed by Anaconda
 http://docs.anaconda.com) to run the preprocessing for the visualization.
 
