@@ -72,10 +72,11 @@ class Runner:
         self.port = port
         if self.verbose:
             print("Attempting to launch web server and redirect system browser.")
-        url = "http://%s:%s/index.html" % (server_name, port)
+        (root, tail) = os.path.split(self.to_directory)
+        url = "http://%s:%s/%s/index.html" % (server_name, port, tail)
         self.start_delayed_redirect(url)
-        # launch browser rooted at to_directory
-        root = self.to_directory
+        # launch browser rooted at directory above to_directory
+        #root = self.to_directory
         os.chdir(root)
         server_address = (server_name, port)
         httpd = server_class(server_address, handler_class)
@@ -164,9 +165,11 @@ class Runner:
         todir = self.to_directory
         config_path = os.path.join(todir, CONFIG_FILENAME)
         files = set(os.listdir(datadir))
+        #print("examining", len(files), "files from", datadir)
         files_info = []
         count = 0
         for bin_fn in sorted(files):
+            #print("trying to configure", bin_fn)
             if bin_fn.endswith(".bin"):
                 prefix = bin_fn[:-4]
                 json_fn = prefix + ".json"
@@ -176,7 +179,13 @@ class Runner:
                     if count > limit:
                         if self.verbose:
                             print("Limiting files list to", limit, "entries in config file.")
-                    break
+                        break
+                else:
+                    #print("no json")
+                    pass
+            else:
+                #print("not a bin")
+                pass
         config_value = {
             "files": files_info,
         }
