@@ -4,6 +4,8 @@ Visualizations for astrophysical radiation simulation data.
 View the example visualization here:
 <a href="https://flatironinstitute.github.io/radiation_viz/">https://flatironinstitute.github.io/radiation_viz/</a>.
 
+<img src="screen_shot.png" width="500px"/>
+
 This is an experimental project which uses Python 3 for preprocessing of data files and HTML5/Javascript in a
 modern browser like Chrome for presentation. Please install it in development mode to make it easy to update.
 You will need a local Python 3 installation (such as one installed by Anaconda
