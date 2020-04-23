@@ -1,11 +1,6 @@
 {
     "files": [
         {
-            "prefix": "truncated",
-            "bin": "truncated.bin",
-            "json": "truncated.json"
-        },
-        {
             "prefix": "truncated_expanded",
             "bin": "truncated_expanded.bin",
             "json": "truncated_expanded.json"
