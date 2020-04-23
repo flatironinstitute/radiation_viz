@@ -4,6 +4,7 @@
 
 Explore the example visualization here:
 <a href="https://flatironinstitute.github.io/radiation_viz/">https://flatironinstitute.github.io/radiation_viz/</a>.
+The visualization requires WebGL2 features and may not work on all browsers.
 
 <img src="screen_shot.png" width="500px"/>
 
