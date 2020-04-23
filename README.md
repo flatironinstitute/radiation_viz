@@ -133,3 +133,6 @@ across data block boundaries".  On my laptop just now the above command took abo
 
 Also note that slider operations and view synchronization in the visualization are not very performant for the high
 resolution data views due the the size of the data.
+
+A simplified example data file is packaged with the repository under the `example_source_data` directory.
+Please see `example_source_data/README.txt` for more information.
