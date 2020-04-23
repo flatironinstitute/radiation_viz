@@ -158,19 +158,25 @@ class Runner:
         for filename in self.files:
             self.file_readers[filename].write_output_files(self.data_directory)
 
-    def set_up_configuration(self):
+    def set_up_configuration(self, limit=100):
         "Create the configuration file for the visualization."
         datadir = self.data_directory
         todir = self.to_directory
         config_path = os.path.join(todir, CONFIG_FILENAME)
         files = set(os.listdir(datadir))
         files_info = []
+        count = 0
         for bin_fn in sorted(files):
             if bin_fn.endswith(".bin"):
                 prefix = bin_fn[:-4]
                 json_fn = prefix + ".json"
                 if json_fn in files:
                     files_info.append({"prefix": prefix, "bin": bin_fn, "json": json_fn})
+                    count += 1
+                    if count > limit:
+                        if self.verbose:
+                            print("Limiting files list to", limit, "entries in config file.")
+                    break
         config_value = {
             "files": files_info,
         }
