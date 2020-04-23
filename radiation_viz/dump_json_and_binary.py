@@ -133,6 +133,9 @@ def copy_single_value(from_filename, to_filename, source="prim", index=0):
     "Create small data file with only intensity (eg) for testing/examples."
     f = h5py.File(from_filename, 'r')
     out = h5py.File(to_filename, 'w')
+    out.attrs["VariableNames"] = np.array([b"intensity"])
+    out.attrs["DatasetNames"] = np.array([bytes(source, "utf8")])
+    out.attrs["NumVariables"] = np.array([1])
     phis = a32(f["x1f"][:])
     thetas = a32(f["x2f"][:])
     rs = a32(f["x3f"][:])
