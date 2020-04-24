@@ -4,6 +4,8 @@ var DATA_DIR = "./processed_data";
 var CONFIG_FILENAME = "./config.json";
 
 var json_data, json_config, chosen_prefix, chosen_index, searchParams, main_url;
+var voxels_canvas, surface_canvas;
+var voxels_context, surface_context;
 var values_array;
 var div_status, context, surfaces, voxel_mesh, surface_mesh;
 var voxel_camera, voxel_renderer, voxel_scene;
@@ -127,12 +129,6 @@ var get_values = function(data, next_action) {
     request.send();
 };
 
-/*
-var reload_values = function(data) {
-    return get_values(data, reset_plot);
-};
-*/
-
 var do_plot = function () {
     div_status.html("Initializing plot for " + json_data.binary_file)
     var layerScale = new Float32Array(json_data.r_values);
@@ -241,16 +237,6 @@ var do_plot = function () {
     var layer_slider = set_up_dim_slider("Z_slider", json_data.phi_size, 0, "R limits");
 };
 
-/*
-var reset_plot = function () {
-    //alert("reset plot not yet implemented: " + chosen_prefix);
-    div_status.html("Reloading plot for " + json_data.binary_file)
-    var layerScale = new Float32Array(json_data.r_values);
-    var rowScale = new Float32Array(json_data.theta_values);
-    var columnScale = new Float32Array(json_data.phi_values);
-};
-*/
-
 var set_up_dim_slider = function(container, dim, index, label) {
     var $container = $("#"+container);
     var M = json_data.grid_maxes[index];
@@ -291,6 +277,19 @@ var sync_cameras = function () {
     surface_camera.position.copy( d );
     surface_camera.quaternion.copy( q );
     surface_camera.scale.copy( s );
+};
+
+var get_canvas_data_json_object = function (canvas, context) {
+    // https://stackoverflow.com/questions/9470043/is-an-imagedata-canvaspixelarray-directly-available-to-a-canvas-webgl-context
+    canvas = canvas || surface_canvas;
+    var gl = context || surface_context;
+    var w = canvas.width;
+    var h = canvas.height;
+    var buf = new Uint8Array(w * h * 4);
+    gl.readPixels(0, 0, 200, 200, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    //var imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+    var data = Array.from(buf);
+    return {data: data, height: h, width: w};
 };
 
 var get_camera_json_string = function () {
@@ -345,7 +344,9 @@ var initialize_surface = function () {
     var $container = $(container);
     $container.empty();
     var canvas = document.createElement( 'canvas' ); 
+    surface_canvas = canvas;
     var context = canvas.getContext( 'webgl2', { alpha: false } ); 
+    surface_context = context;
     var renderer = new THREE.WebGLRenderer( { canvas: canvas, context: context } );
     surface_renderer = renderer;
 
@@ -386,7 +387,9 @@ var initialize_voxels = function () {
     var $container = $(container);
     $container.empty();
     var canvas = document.createElement( 'canvas' ); 
+    voxels_canvas = canvas;
     var context = canvas.getContext( 'webgl2', { alpha: false } ); 
+    voxels_context = context;
     var renderer = new THREE.WebGLRenderer( { canvas: canvas, context: context } );
     voxel_renderer = renderer;
 
