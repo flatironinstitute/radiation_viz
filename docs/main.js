@@ -229,7 +229,7 @@ set_up_dim_slider = function(container, dim, index, label) {
     //json_data.grid_maxes[index] = dim+1;
     return slider;
 };
-sync_cameras = function () {
+var sync_cameras = function () {
     // https://stackoverflow.com/questions/49201438/threejs-apply-properties-from-one-camera-to-another-camera
     var d = new THREE.Vector3(),
         q = new THREE.Quaternion(),
@@ -238,6 +238,23 @@ sync_cameras = function () {
     surface_camera.position.copy( d );
     surface_camera.quaternion.copy( q );
     surface_camera.scale.copy( s );
+};
+
+var download_camera_settings = function () {
+    var d = new THREE.Vector3(),
+        q = new THREE.Quaternion(),
+        s = new THREE.Vector3();
+    voxel_camera.matrixWorld.decompose( d, q, s );
+    var object = {
+        d: d.toArray(),
+        q: q.toArray(),
+        s: s.toArray(),
+    };
+    var content = JSON.stringify(object);
+    var type = type="text/plain;charset=utf-8";
+    var name = "camera_settings.json";
+    var the_blob = new Blob([content], {type: type});
+    saveAs(the_blob, name);
 };
 
 var update_surface = function () {
