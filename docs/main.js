@@ -3,7 +3,7 @@
 var DATA_DIR = "./processed_data";
 var CONFIG_FILENAME = "./config.json";
 
-var json_data, json_config;
+var json_data, json_config, chosen_prefix, chosen_index, searchParams, main_url;
 var values_array;
 var div_status, context, surfaces, voxel_mesh, surface_mesh;
 var voxel_camera, voxel_renderer, voxel_scene;
@@ -17,20 +17,28 @@ var load_config = function() {
     div_status = $("#div_status");
     div_status.html("loading configuration.");
     $.getJSON(CONFIG_FILENAME, process_config).fail(on_load_failure(CONFIG_FILENAME));
+    searchParams = new URLSearchParams();
 };
 
 var process_config = function(data) {
     json_config = data
     div_status.html("initializing.");
     var files_info = data.files;
-    var chosen_prefix = files_info[0].prefix;
+    chosen_prefix = files_info[0].prefix;
+    chosen_index = 0;
     // look for prefix in url
     var url = location.toString();
-    var main_url = url.split("?")[0];
+    var split = url.split("?");
+    if (split.length > 1) {
+        searchParams = new URLSearchParams(split[1]);
+    }
+    var q = searchParams.get("q");
+    main_url = url.split("?")[0];
     for (var i=0; i<files_info.length; i++) {
         var prefix = files_info[i].prefix;
-        if (url.endsWith(prefix)) {
+        if (q == prefix) {
             chosen_prefix = prefix;
+            chosen_index = i;
         }
     }
     // populate the dropdown selection
@@ -55,10 +63,37 @@ var process_config = function(data) {
     load_json(chosen_prefix);
 };
 
-var load_json = function(prefix) {
+var load_next = function(match_string) {
+    var data = json_config;
+    var files_info = data.files;
+    var next_index;
+    var next_prefix;
+    for (var index = chosen_index+1; index < files_info.length; index++) {
+        var prefix = files_info[index].prefix;
+        if ((!match_string) || (prefix.includes(match_string))) {
+            next_index = index;
+            next_prefix = prefix;
+            break;
+        }
+    }
+    if (!next_index) {
+        var load_button = $("#load_next");
+        load_button.html("NO NEXT")
+        return null;  // No next file
+    }
+    chosen_index = next_index;
+    chosen_prefix = next_prefix;
+    var camera_json = get_camera_json_string();
+    document.location.href = main_url + "?q=" + chosen_prefix + "&camera=" + camera_json;
+    return chosen_prefix;
+};
+
+var load_json = function(prefix, next_action) {
+    next_action = next_action || get_values;
     var path = DATA_DIR + "/" + prefix + ".json";
     div_status.html("Getting json: " + path);
-    $.getJSON(path, get_values).fail(on_load_failure(path));
+    var on_success = function(data) { return next_action(data); }
+    $.getJSON(path, on_success).fail(on_load_failure(path));
 };
 
 var on_load_failure = function(path) {
@@ -68,7 +103,8 @@ var on_load_failure = function(path) {
     };
 };
 
-var get_values = function(data) {
+var get_values = function(data, next_action) {
+    next_action = next_action || do_plot;
     json_data = data;
     var bin_file_name = json_data.binary_file;
     var bin_file_url = DATA_DIR + "/" + bin_file_name;
@@ -84,12 +120,18 @@ var get_values = function(data) {
         reader.onload =  function(a){
             div_status.html("Converting binary data: " + bin_file_url);
             values_array = new Float32Array(reader.result);
-            do_plot();
+            next_action();
         };
     };
     request.onerror = on_load_failure(bin_file_url);
     request.send();
 };
+
+/*
+var reload_values = function(data) {
+    return get_values(data, reset_plot);
+};
+*/
 
 var do_plot = function () {
     div_status.html("Initializing plot for " + json_data.binary_file)
@@ -199,7 +241,17 @@ var do_plot = function () {
     var layer_slider = set_up_dim_slider("Z_slider", json_data.phi_size, 0, "R limits");
 };
 
-set_up_dim_slider = function(container, dim, index, label) {
+/*
+var reset_plot = function () {
+    //alert("reset plot not yet implemented: " + chosen_prefix);
+    div_status.html("Reloading plot for " + json_data.binary_file)
+    var layerScale = new Float32Array(json_data.r_values);
+    var rowScale = new Float32Array(json_data.theta_values);
+    var columnScale = new Float32Array(json_data.phi_values);
+};
+*/
+
+var set_up_dim_slider = function(container, dim, index, label) {
     var $container = $("#"+container);
     var M = json_data.grid_maxes[index];
     var m = json_data.grid_mins[index];
@@ -229,6 +281,7 @@ set_up_dim_slider = function(container, dim, index, label) {
     //json_data.grid_maxes[index] = dim+1;
     return slider;
 };
+
 var sync_cameras = function () {
     // https://stackoverflow.com/questions/49201438/threejs-apply-properties-from-one-camera-to-another-camera
     var d = new THREE.Vector3(),
@@ -240,7 +293,7 @@ var sync_cameras = function () {
     surface_camera.scale.copy( s );
 };
 
-var download_camera_settings = function () {
+var get_camera_json_string = function () {
     var d = new THREE.Vector3(),
         q = new THREE.Quaternion(),
         s = new THREE.Vector3();
@@ -250,7 +303,29 @@ var download_camera_settings = function () {
         q: q.toArray(),
         s: s.toArray(),
     };
-    var content = JSON.stringify(object);
+    return JSON.stringify(object);
+};
+
+var set_camera_from_json_string = function(s) {
+    var object = JSON.parse(s);
+    var d = new THREE.Vector3(),
+        q = new THREE.Quaternion(),
+        s = new THREE.Vector3();
+    d.fromArray(object.d);
+    q.fromArray(object.q);
+    s.fromArray(object.s);
+    voxel_camera.position.copy( d );
+    voxel_camera.quaternion.copy( q );
+    voxel_camera.scale.copy( s );
+    if (surface_camera) {
+        surface_camera.position.copy( d );
+        surface_camera.quaternion.copy( q );
+        surface_camera.scale.copy( s );
+    }
+};
+
+var download_camera_settings = function () {
+    var content = get_camera_json_string();
     var type = type="text/plain;charset=utf-8";
     var name = "camera_settings.json";
     var the_blob = new Blob([content], {type: type});
@@ -303,6 +378,7 @@ var initialize_surface = function () {
     surfaceControls = new THREE.OrbitControls(camera, renderer.domElement);
     surfaceControls.userZoom = false;
     surfaceClock = new THREE.Clock();
+    surface_initialized = true;
 };
 
 var initialize_voxels = function () {
@@ -347,6 +423,14 @@ var initialize_voxels = function () {
     voxelControls = new THREE.OrbitControls(camera, renderer.domElement);
     voxelControls.userZoom = false;
     voxelClock = new THREE.Clock();
+
+    var camera_json = searchParams.get("camera");
+    if (camera_json) {
+        // auto load isosurface and set up cameras
+        initialize_surface();
+        //surface_initialized = true;
+        set_camera_from_json_string(camera_json);
+    }
 
     animate();
 };
