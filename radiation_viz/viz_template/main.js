@@ -3,7 +3,9 @@
 var DATA_DIR = "./processed_data";
 var CONFIG_FILENAME = "./config.json";
 
-var json_data, json_config;
+var json_data, json_config, chosen_prefix, chosen_index, searchParams, main_url;
+var voxels_canvas, surface_canvas;
+var voxels_context, surface_context;
 var values_array;
 var div_status, context, surfaces, voxel_mesh, surface_mesh;
 var voxel_camera, voxel_renderer, voxel_scene;
@@ -12,25 +14,37 @@ var voxelControls, voxelClock;
 var surfaceControls, surfaceClock;
 var voxels_initialized = false;
 var surface_initialized = false;
+var voxels_drawn = false;
+var surface_drawn = false;
+var stop_animation = false;
+var threshold, threshold_slider;
 
 var load_config = function() {
     div_status = $("#div_status");
     div_status.html("loading configuration.");
     $.getJSON(CONFIG_FILENAME, process_config).fail(on_load_failure(CONFIG_FILENAME));
+    searchParams = new URLSearchParams();
 };
 
 var process_config = function(data) {
     json_config = data
     div_status.html("initializing.");
     var files_info = data.files;
-    var chosen_prefix = files_info[0].prefix;
+    chosen_prefix = files_info[0].prefix;
+    chosen_index = 0;
     // look for prefix in url
     var url = location.toString();
-    var main_url = url.split("?")[0];
+    var split = url.split("?");
+    if (split.length > 1) {
+        searchParams = new URLSearchParams(split[1]);
+    }
+    var q = searchParams.get("q");
+    main_url = url.split("?")[0];
     for (var i=0; i<files_info.length; i++) {
         var prefix = files_info[i].prefix;
-        if (url.endsWith(prefix)) {
+        if (q == prefix) {
             chosen_prefix = prefix;
+            chosen_index = i;
         }
     }
     // populate the dropdown selection
@@ -55,10 +69,37 @@ var process_config = function(data) {
     load_json(chosen_prefix);
 };
 
-var load_json = function(prefix) {
+var load_next = function(match_string) {
+    var data = json_config;
+    var files_info = data.files;
+    var next_index;
+    var next_prefix;
+    for (var index = chosen_index+1; index < files_info.length; index++) {
+        var prefix = files_info[index].prefix;
+        if ((!match_string) || (prefix.includes(match_string))) {
+            next_index = index;
+            next_prefix = prefix;
+            break;
+        }
+    }
+    if (!next_index) {
+        var load_button = $("#load_next");
+        load_button.html("NO NEXT")
+        return null;  // No next file
+    }
+    chosen_index = next_index;
+    chosen_prefix = next_prefix;
+    var camera_json = get_camera_json_string();
+    document.location.href = main_url + "?q=" + chosen_prefix + "&camera=" + camera_json;
+    return chosen_prefix;
+};
+
+var load_json = function(prefix, next_action) {
+    next_action = next_action || get_values;
     var path = DATA_DIR + "/" + prefix + ".json";
     div_status.html("Getting json: " + path);
-    $.getJSON(path, get_values).fail(on_load_failure(path));
+    var on_success = function(data) { return next_action(data); }
+    $.getJSON(path, on_success).fail(on_load_failure(path));
 };
 
 var on_load_failure = function(path) {
@@ -68,7 +109,8 @@ var on_load_failure = function(path) {
     };
 };
 
-var get_values = function(data) {
+var get_values = function(data, next_action) {
+    next_action = next_action || do_plot;
     json_data = data;
     var bin_file_name = json_data.binary_file;
     var bin_file_url = DATA_DIR + "/" + bin_file_name;
@@ -84,7 +126,7 @@ var get_values = function(data) {
         reader.onload =  function(a){
             div_status.html("Converting binary data: " + bin_file_url);
             values_array = new Float32Array(reader.result);
-            do_plot();
+            next_action();
         };
     };
     request.onerror = on_load_failure(bin_file_url);
@@ -122,6 +164,7 @@ var do_plot = function () {
     var M = json_data.intensity_max;
     //M = 0.3 // XXXXX TESTING ONLY
     var mid = 0.5 * (m + M);
+    threshold = mid;
 
     surfaces = div_status.webGL2surfaces3dopt(
         {
@@ -147,11 +190,12 @@ var do_plot = function () {
     surfaces.set_grid_limits(json_data.grid_mins, json_data.grid_maxes);
 
     var slider = $("#value_slider");
+    threshold_slider = slider
     slider.empty();
     var slider_readout = $("#value_readout");
 
     var update_slider = (function () {
-        var threshold = + slider.slider("option", "value");
+        threshold = + slider.slider("option", "value");
         slider_readout.html(threshold.toFixed(5));
         surfaces.set_threshold(threshold);
         //surfaces.run();
@@ -168,7 +212,7 @@ var do_plot = function () {
     slider.slider({
         min: m,
         max: M,
-        value: 0.5*(m+M),
+        value: threshold,
         step: 0.001*(M-m),
         slide: update_slider,
         change: update_slider,
@@ -177,14 +221,6 @@ var do_plot = function () {
 
     var sync_button = $("#sync_button");
 
-    var sync_surface = function () {
-        if (surface_initialized) {
-            update_surface();
-        } else {
-            initialize_surface();
-            surface_initialized = true;
-        }
-    };
     sync_button.click(sync_surface);
 
     $("#focus_button").click(function() {
@@ -199,7 +235,16 @@ var do_plot = function () {
     var layer_slider = set_up_dim_slider("Z_slider", json_data.phi_size, 0, "R limits");
 };
 
-set_up_dim_slider = function(container, dim, index, label) {
+var sync_surface = function () {
+    if (surface_initialized) {
+        update_surface();
+    } else {
+        initialize_surface();
+        surface_initialized = true;
+    }
+};
+
+var set_up_dim_slider = function(container, dim, index, label) {
     var $container = $("#"+container);
     var M = json_data.grid_maxes[index];
     var m = json_data.grid_mins[index];
@@ -229,7 +274,8 @@ set_up_dim_slider = function(container, dim, index, label) {
     //json_data.grid_maxes[index] = dim+1;
     return slider;
 };
-sync_cameras = function () {
+
+var sync_cameras = function () {
     // https://stackoverflow.com/questions/49201438/threejs-apply-properties-from-one-camera-to-another-camera
     var d = new THREE.Vector3(),
         q = new THREE.Quaternion(),
@@ -240,11 +286,100 @@ sync_cameras = function () {
     surface_camera.scale.copy( s );
 };
 
+var get_canvas_data_json_object = function (context, renderer, scene, camera) {
+    // https://stackoverflow.com/questions/9470043/is-an-imagedata-canvaspixelarray-directly-available-to-a-canvas-webgl-context
+    var gl = context || surface_context;
+    renderer = renderer || surface_renderer;
+    scene = scene || surface_scene;
+    camera = camera || surface_camera;
+    var w = gl.drawingBufferWidth;
+    var h = gl.drawingBufferHeight;
+    // this may leak resources if called many times?  xxxx
+    var bufferTexture = new THREE.WebGLRenderTarget( w, h, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter});
+    // render to a texture so we can read the pixels (?)
+    renderer.setRenderTarget(bufferTexture);
+    renderer.render(scene, camera);
+    var buf = new Uint8Array(w * h * 4);
+    //var sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+    //gl.waitSync(sync, 0, gl.TIMEOUT_IGNORED);
+    gl.flush();
+    gl.finish();
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+
+    // xxxx debug code
+    /*
+    var maxes = [0,0,0,0];
+    var mins = [255,255,255,255];
+    //var jimg = new Jimp(w, h);
+    for (var x=0; x<w; x++) {
+        for (var y=0; y<h; y++) {
+        var i = 4 * (y * w + x);
+        for (var j=0; j<4; j++) {
+            var k = i + j;
+            var dk = buf[k]
+            maxes[j] = Math.max(maxes[j], dk)
+            mins[j] = Math.min(mins[j], dk)
+        }
+        }
+    }
+    console.log("maxes", maxes);
+    console.log("mins", mins)
+    */
+
+    var data = Array.from(buf);
+    return {data: data, height: h, width: w};
+};
+
+var get_camera_json_string = function () {
+    var d = new THREE.Vector3(),
+        q = new THREE.Quaternion(),
+        s = new THREE.Vector3();
+    voxel_camera.matrixWorld.decompose( d, q, s );
+    var object = {
+        d: d.toArray(),
+        q: q.toArray(),
+        s: s.toArray(),
+        threshold: threshold,
+    };
+    return JSON.stringify(object);
+};
+
+var set_camera_from_json_string = function(s) {
+    var object = JSON.parse(s);
+    var d = new THREE.Vector3(),
+        q = new THREE.Quaternion(),
+        s = new THREE.Vector3();
+    d.fromArray(object.d);
+    q.fromArray(object.q);
+    s.fromArray(object.s);
+    voxel_camera.position.copy( d );
+    voxel_camera.quaternion.copy( q );
+    voxel_camera.scale.copy( s );
+    threshold_slider.slider({value: object.threshold});
+    sync_surface();
+    if (surface_camera) {
+        surface_camera.position.copy( d );
+        surface_camera.quaternion.copy( q );
+        surface_camera.scale.copy( s );
+    }
+    //threshold_slider.slider({value: object.threshold});
+    //sync_surface();
+    //sync_cameras();
+};
+
+var download_camera_settings = function () {
+    var content = get_camera_json_string();
+    var type = type="text/plain;charset=utf-8";
+    var name = "camera_settings.json";
+    var the_blob = new Blob([content], {type: type});
+    saveAs(the_blob, name);
+};
+
 var update_surface = function () {
     surfaces.run();
     surfaces.check_update_link();
     sync_cameras();
-    surface_renderer.render( surface_scene, surface_camera );
+    surface_renderer.render( surface_scene, surface_camera, null );
 };
 
 var initialize_surface = function () {
@@ -253,7 +388,9 @@ var initialize_surface = function () {
     var $container = $(container);
     $container.empty();
     var canvas = document.createElement( 'canvas' ); 
+    surface_canvas = canvas;
     var context = canvas.getContext( 'webgl2', { alpha: false } ); 
+    surface_context = context;
     var renderer = new THREE.WebGLRenderer( { canvas: canvas, context: context } );
     surface_renderer = renderer;
 
@@ -286,14 +423,18 @@ var initialize_surface = function () {
     surfaceControls = new THREE.OrbitControls(camera, renderer.domElement);
     surfaceControls.userZoom = false;
     surfaceClock = new THREE.Clock();
+    surface_initialized = true;
 };
 
 var initialize_voxels = function () {
+    voxels_initialized = true;
     var container = document.getElementById( "voxels" );
     var $container = $(container);
     $container.empty();
     var canvas = document.createElement( 'canvas' ); 
+    voxels_canvas = canvas;
     var context = canvas.getContext( 'webgl2', { alpha: false } ); 
+    voxels_context = context;
     var renderer = new THREE.WebGLRenderer( { canvas: canvas, context: context } );
     voxel_renderer = renderer;
 
@@ -331,6 +472,14 @@ var initialize_voxels = function () {
     voxelControls.userZoom = false;
     voxelClock = new THREE.Clock();
 
+    var camera_json = searchParams.get("camera");
+    if (camera_json) {
+        // auto load isosurface and set up cameras
+        initialize_surface();
+        //surface_initialized = true;
+        set_camera_from_json_string(camera_json);
+    }
+
     animate();
 };
 
@@ -347,9 +496,15 @@ var animate = function () {
         surfaceControls.update(delta);
     }
 
-    voxel_renderer.render( voxel_scene, voxel_camera );
+    voxel_renderer.setRenderTarget(null);
+    voxel_renderer.render( voxel_scene, voxel_camera);
+    voxels_drawn = true;
     if (surface_renderer) {
-        surface_renderer.render( surface_scene, surface_camera );
+        surface_renderer.setRenderTarget(null);
+        surface_renderer.render( surface_scene, surface_camera);
+        surface_drawn = true;
     }
-    requestAnimationFrame( animate );
+    if (!stop_animation) {
+        requestAnimationFrame( animate );
+    }
 };
