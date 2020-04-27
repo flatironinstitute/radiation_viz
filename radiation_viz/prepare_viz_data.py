@@ -30,8 +30,10 @@ class Runner:
     def __init__(self):
         parser = self.parser = argparse.ArgumentParser()
         a = parser.add_argument
+        # xxxx No checking for logically incompatible flags...
         a("filenames", help="Source file to convert.  Must end in '.athdf'.", nargs='+', metavar='FILE')
         a("--to_directory", help="Destination directory where to place the visualization and data.", default=DEFAULT_DIR)
+        a("--var_substring", help="Exclude variables with names that do not match this substring (default '').", default='')
         a("--truncated", help="Don't generate full resolution.", action="store_true")
         a("--skip", help="Skip stride for truncated views (0 for none).", type=int, default=4)
         a("--quiet", help="Don't print helpful output.", action="store_true")
@@ -39,6 +41,8 @@ class Runner:
         a("--clean", help="Delete existing visualization folder if it exists.", action="store_true")
         a("--dry_run", help="List intended actions but don't make permanent changes.", action="store_true")
         a("--launch", help="Start server and attempt to open the visualization in a browser.", action="store_true")
+        a("--no_config", help="Do not write the config.json file after run.", action="store_true")
+        a("--config_only", help="Write the config.json file based on extant files and do nothing else.", action="store_true")
         a("--view_only", help="Only start server and attempt to open the visualization in a browser.", action="store_true")
         args = self.args = parser.parse_args()
         self.verbose = (not args.quiet) or args.dry_run
@@ -47,24 +51,28 @@ class Runner:
             print("Arguments parsed.")
 
     def run(self):
-        self.to_directory = self.fix_path(self.args.to_directory)
-        if not self.args.view_only:
-            self.load_file_data()
-            self.check_directory()
-            self.check_output_files()
-            if self.verbose:
-                print()
-            if self.args.dry_run:
-                print ("Dry run complete: not making changes.")
-                return
-            if not self.args.force:
-                confirm = input("*** PLEASE CONFIRM: Make changes (Y/N)? ")
-                if confirm.upper()[0:1] != "Y":
-                    print("Aborting.")
+        args = self.args
+        self.to_directory = self.fix_path(args.to_directory)
+        self.data_directory = os.path.join(self.to_directory, DATA_SUBDIRECTORY)
+        if (not args.view_only):
+            if (not args.config_only):
+                self.load_file_data()
+                self.check_directory()
+                self.check_output_files()
+                if self.verbose:
+                    print()
+                if self.args.dry_run:
+                    print ("Dry run complete: not making changes.")
                     return
-            self.copy_directory_if_needed()
-            self.write_output_files()
-            self.set_up_configuration()
+                if not self.args.force:
+                    confirm = input("*** PLEASE CONFIRM: Make changes (Y/N)? ")
+                    if confirm.upper()[0:1] != "Y":
+                        print("Aborting.")
+                        return
+                self.copy_directory_if_needed()
+                self.write_output_files()
+            if (not args.no_config):
+                self.set_up_configuration()
         if self.args.launch or self.args.view_only:
             self.launch_server_and_open()
 
@@ -101,7 +109,7 @@ class Runner:
         for filename in self.files:
             if self.verbose:
                 print("   loading metadata for", repr(filename))
-            self.file_readers[filename] = FileReader(filename, args.truncated, args.skip, force_files, self.verbose)
+            self.file_readers[filename] = FileReader(filename, args.truncated, args.skip, force_files, self.args, self.verbose)
 
     def check_directory(self):
         "Determine whether the output directory needs to be created and initialized."
@@ -146,11 +154,14 @@ class Runner:
 
     def check_output_files(self):
         "Check whether any output files are overwrites."
-        self.data_directory = os.path.join(self.to_directory, DATA_SUBDIRECTORY)
+        #self.data_directory = os.path.join(self.to_directory, DATA_SUBDIRECTORY)
         if self.verbose:
             print("Checking whether output data files exist.")
         for filename in self.files:
             self.file_readers[filename].check_output_files(self.data_directory)
+        if (not self.args.no_config):
+            if self.verbose:
+                print(CONFIG_FILENAME, "will be written.")
 
     def write_output_files(self):
         "Create JSON and binary files from inputs files."
@@ -196,8 +207,9 @@ class Runner:
 
 class FileReader:
 
-    def __init__(self, filename, truncated, skip, force, verbose):
+    def __init__(self, filename, truncated, skip, force, args, verbose):
         (self.filename, self.truncated, self.skip, self.force, self.verbose) = (filename, truncated, skip, force, verbose)
+        self.var_substring = args.var_substring
         assert filename.endswith(SOURCE_SUFFIX), "Filename has incorrect extension: " + repr((filename, SOURCE_SUFFIX))
         assert (not truncated) or skip, "truncated file must have a non-zero skip value " + repr(filename)
         # extract the metadata for quantity locations
@@ -228,10 +240,12 @@ class FileReader:
         self.out_prefix = self.file_prefix.replace(".", "_")
         self.variable_and_skip_to_file_prefix = {}
         for vr in sorted(self.name_to_dataset_and_index):
-            if not self.truncated:
-                self.variable_and_skip_to_file_prefix[(vr, 0)] = "%s_%s_full"  % (self.file_prefix, vr)
-            if self.skip:
-                self.variable_and_skip_to_file_prefix[(vr, self.skip)] = "%s_%s_skip_%s"  % (self.file_prefix, vr, self.skip)
+            # ignore variables which don't match substring
+            if self.var_substring in vr:
+                if not self.truncated:
+                    self.variable_and_skip_to_file_prefix[(vr, 0)] = "%s_%s_full"  % (self.file_prefix, vr)
+                if self.skip:
+                    self.variable_and_skip_to_file_prefix[(vr, self.skip)] = "%s_%s_skip_%s"  % (self.file_prefix, vr, self.skip)
         existing_files = 0
         for prefix in sorted(self.variable_and_skip_to_file_prefix.values()):
             for ext in (".json", ".bin"):
