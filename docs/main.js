@@ -17,7 +17,7 @@ var surface_initialized = false;
 var voxels_drawn = false;
 var surface_drawn = false;
 var stop_animation = false;
-var threshold;
+var threshold, threshold_slider;
 
 var load_config = function() {
     div_status = $("#div_status");
@@ -190,6 +190,7 @@ var do_plot = function () {
     surfaces.set_grid_limits(json_data.grid_mins, json_data.grid_maxes);
 
     var slider = $("#value_slider");
+    threshold_slider = slider
     slider.empty();
     var slider_readout = $("#value_readout");
 
@@ -337,6 +338,7 @@ var get_camera_json_string = function () {
         d: d.toArray(),
         q: q.toArray(),
         s: s.toArray(),
+        threshold: threshold,
     };
     return JSON.stringify(object);
 };
@@ -357,6 +359,7 @@ var set_camera_from_json_string = function(s) {
         surface_camera.quaternion.copy( q );
         surface_camera.scale.copy( s );
     }
+    threshold_slider.slider({value: threshold});
 };
 
 var download_camera_settings = function () {
@@ -419,6 +422,7 @@ var initialize_surface = function () {
 };
 
 var initialize_voxels = function () {
+    voxels_initialized = true;
     var container = document.getElementById( "voxels" );
     var $container = $(container);
     $container.empty();
