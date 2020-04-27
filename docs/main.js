@@ -288,8 +288,6 @@ var get_canvas_data_json_object = function (context, renderer, scene, camera) {
     renderer = renderer || surface_renderer;
     scene = scene || surface_scene;
     camera = camera || surface_camera;
-    // xxxx testing
-    //gl = canvas.getContext('webgl2');
     var w = gl.drawingBufferWidth;
     var h = gl.drawingBufferHeight;
     // this may leak resources if called many times?  xxxx
@@ -303,8 +301,9 @@ var get_canvas_data_json_object = function (context, renderer, scene, camera) {
     gl.flush();
     gl.finish();
     gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    // xxxx debug code
 
+    // xxxx debug code
+    /*
     var maxes = [0,0,0,0];
     var mins = [255,255,255,255];
     //var jimg = new Jimp(w, h);
@@ -321,8 +320,8 @@ var get_canvas_data_json_object = function (context, renderer, scene, camera) {
     }
     console.log("maxes", maxes);
     console.log("mins", mins)
+    */
 
-    //var imgData = context.getImageData(0, 0, canvas.width, canvas.height);
     var data = Array.from(buf);
     return {data: data, height: h, width: w};
 };
