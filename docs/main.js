@@ -14,6 +14,9 @@ var voxelControls, voxelClock;
 var surfaceControls, surfaceClock;
 var voxels_initialized = false;
 var surface_initialized = false;
+var voxels_drawn = false;
+var surface_drawn = false;
+var stop_animation = false;
 
 var load_config = function() {
     div_status = $("#div_status");
@@ -279,14 +282,46 @@ var sync_cameras = function () {
     surface_camera.scale.copy( s );
 };
 
-var get_canvas_data_json_object = function (canvas, context) {
+var get_canvas_data_json_object = function (context, renderer, scene, camera) {
     // https://stackoverflow.com/questions/9470043/is-an-imagedata-canvaspixelarray-directly-available-to-a-canvas-webgl-context
-    canvas = canvas || surface_canvas;
     var gl = context || surface_context;
-    var w = canvas.width;
-    var h = canvas.height;
+    renderer = renderer || surface_renderer;
+    scene = scene || surface_scene;
+    camera = camera || surface_camera;
+    // xxxx testing
+    //gl = canvas.getContext('webgl2');
+    var w = gl.drawingBufferWidth;
+    var h = gl.drawingBufferHeight;
+    // this may leak resources if called many times?  xxxx
+    var bufferTexture = new THREE.WebGLRenderTarget( w, h, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter});
+    // render to a texture so we can read the pixels (?)
+    renderer.setRenderTarget(bufferTexture);
+    renderer.render(scene, camera);
     var buf = new Uint8Array(w * h * 4);
-    gl.readPixels(0, 0, 200, 200, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    //var sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+    //gl.waitSync(sync, 0, gl.TIMEOUT_IGNORED);
+    gl.flush();
+    gl.finish();
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    // xxxx debug code
+
+    var maxes = [0,0,0,0];
+    var mins = [255,255,255,255];
+    //var jimg = new Jimp(w, h);
+    for (var x=0; x<w; x++) {
+        for (var y=0; y<h; y++) {
+        var i = 4 * (y * w + x);
+        for (var j=0; j<4; j++) {
+            var k = i + j;
+            var dk = buf[k]
+            maxes[j] = Math.max(maxes[j], dk)
+            mins[j] = Math.min(mins[j], dk)
+        }
+        }
+    }
+    console.log("maxes", maxes);
+    console.log("mins", mins)
+
     //var imgData = context.getImageData(0, 0, canvas.width, canvas.height);
     var data = Array.from(buf);
     return {data: data, height: h, width: w};
@@ -335,7 +370,7 @@ var update_surface = function () {
     surfaces.run();
     surfaces.check_update_link();
     sync_cameras();
-    surface_renderer.render( surface_scene, surface_camera );
+    surface_renderer.render( surface_scene, surface_camera, null );
 };
 
 var initialize_surface = function () {
@@ -451,9 +486,15 @@ var animate = function () {
         surfaceControls.update(delta);
     }
 
-    voxel_renderer.render( voxel_scene, voxel_camera );
+    voxel_renderer.setRenderTarget(null);
+    voxel_renderer.render( voxel_scene, voxel_camera);
+    voxels_drawn = true;
     if (surface_renderer) {
-        surface_renderer.render( surface_scene, surface_camera );
+        surface_renderer.setRenderTarget(null);
+        surface_renderer.render( surface_scene, surface_camera);
+        surface_drawn = true;
     }
-    requestAnimationFrame( animate );
+    if (!stop_animation) {
+        requestAnimationFrame( animate );
+    }
 };
