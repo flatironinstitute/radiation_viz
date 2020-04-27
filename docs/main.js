@@ -221,14 +221,6 @@ var do_plot = function () {
 
     var sync_button = $("#sync_button");
 
-    var sync_surface = function () {
-        if (surface_initialized) {
-            update_surface();
-        } else {
-            initialize_surface();
-            surface_initialized = true;
-        }
-    };
     sync_button.click(sync_surface);
 
     $("#focus_button").click(function() {
@@ -241,6 +233,15 @@ var do_plot = function () {
     var col_slider = set_up_dim_slider("X_slider", json_data.r_size, 2, "Phi limits");
     var row_slider = set_up_dim_slider("Y_slider", json_data.theta_size, 1, "Theta limits");
     var layer_slider = set_up_dim_slider("Z_slider", json_data.phi_size, 0, "R limits");
+};
+
+var sync_surface = function () {
+    if (surface_initialized) {
+        update_surface();
+    } else {
+        initialize_surface();
+        surface_initialized = true;
+    }
 };
 
 var set_up_dim_slider = function(container, dim, index, label) {
@@ -354,12 +355,16 @@ var set_camera_from_json_string = function(s) {
     voxel_camera.position.copy( d );
     voxel_camera.quaternion.copy( q );
     voxel_camera.scale.copy( s );
+    threshold_slider.slider({value: object.threshold});
+    sync_surface();
     if (surface_camera) {
         surface_camera.position.copy( d );
         surface_camera.quaternion.copy( q );
         surface_camera.scale.copy( s );
     }
-    threshold_slider.slider({value: threshold});
+    //threshold_slider.slider({value: object.threshold});
+    //sync_surface();
+    //sync_cameras();
 };
 
 var download_camera_settings = function () {
