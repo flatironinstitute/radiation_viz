@@ -17,6 +17,7 @@ var surface_initialized = false;
 var voxels_drawn = false;
 var surface_drawn = false;
 var stop_animation = false;
+var threshold;
 
 var load_config = function() {
     div_status = $("#div_status");
@@ -163,6 +164,7 @@ var do_plot = function () {
     var M = json_data.intensity_max;
     //M = 0.3 // XXXXX TESTING ONLY
     var mid = 0.5 * (m + M);
+    threshold = mid;
 
     surfaces = div_status.webGL2surfaces3dopt(
         {
@@ -192,7 +194,7 @@ var do_plot = function () {
     var slider_readout = $("#value_readout");
 
     var update_slider = (function () {
-        var threshold = + slider.slider("option", "value");
+        threshold = + slider.slider("option", "value");
         slider_readout.html(threshold.toFixed(5));
         surfaces.set_threshold(threshold);
         //surfaces.run();
@@ -209,7 +211,7 @@ var do_plot = function () {
     slider.slider({
         min: m,
         max: M,
-        value: 0.5*(m+M),
+        value: threshold,
         step: 0.001*(M-m),
         slide: update_slider,
         change: update_slider,
