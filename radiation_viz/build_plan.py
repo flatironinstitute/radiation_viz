@@ -4,12 +4,22 @@ sequence.
 
 Example usage:
 
-$ python build_plan.py ~/misc/Yan-Fei_Jiang/ ~/tmp/radiation_test --limit 1 --clean --var_substring rho > plan.sh
+Build the planned commands:
 
-Then to execute:
+$ python -m radiation_viz.build_plan ~/misc/Yan-Fei_Jiang/ ~/tmp/radiation_test \
+     --skip 4 --limit 1 --clean --var_substring rho --out ~/tmp/output > plan.sh
+
+Then to execute them:
 
 $ source plan.sh
 
+or 
+
+$ python -m radiation_viz.build_plan \
+    /mnt/home/yjiang/ceph/CVDisk/CVIsoB2/Data_finished \
+    /mnt/ceph/users/awatters/viz/processed_data/viz \
+    --limit 10 --clean  --var_substring rho \
+    --out /mnt/ceph/users/awatters/viz/ > plan.sh
 """
 
 import argparse
@@ -28,13 +38,27 @@ class BuildPlan:
         a("--clean", help="Delete and replace to_directory if it exists.", action="store_true")
         a("--var_substring", help="Exclude variables with names that do not match this substring (default '').", default='')
         a("--skip", help="Skip stride for truncated views (default to full resolution).", type=int, default=0)
+        a("--out", help="Directory for output files.", default="")
         self.args = parser.parse_args()
+        out = self.args.out
+        if (out):
+            self.out = self.fix_path(out)
+            if not os.path.isdir(self.out):
+                os.makedirs(self.out)
 
     def fix_path(self, path):
         return os.path.abspath(os.path.expanduser(path))
 
+    def redirect(self, for_path):
+        out = self.out
+        if not out:
+            return ""
+        (head, tail) = os.path.split(for_path)
+        logpath = os.path.join(out, tail + ".log")
+        return "> " + logpath + " 2>&1"
+
     def build(self):
-        prefix = "python -m radiation_viz.prepare_viz_data"
+        prefix = "python -u -m radiation_viz.prepare_viz_data"
         clean_option = ""
         substring_option = ""
         skip_option = ""
@@ -48,16 +72,18 @@ class BuildPlan:
             clean_option = "--clean"
         if args.var_substring:
             substring_option = "--var_substring " + args.var_substring
-        skip_option = "--skip " + repr(args.skip)
+        skip_option = "--truncated --skip " + repr(args.skip)
         count = 0
         for path in files:
-            print(prefix, path, clean_option, substring_option, skip_option, "--no_config --to_directory", to_directory, "--force")
+            redir = self.redirect(path)
+            print(prefix, path, clean_option, substring_option, skip_option, "--no_config --to_directory", to_directory, "--force", redir)
             clean_option = ""  # after first don't clean
             count += 1
             if (args.limit > 0) and (count >= args.limit):
                 break
         # finally build config file
-        print (prefix, "dummy_argument.athdf", "--config_only --to_directory", to_directory, "--force")
+        redir = self.redirect("config.json")
+        print (prefix, "dummy_argument.athdf", "--config_only --to_directory", to_directory, "--force", redir)
 
 if __name__ == "__main__":
     plan = BuildPlan()
