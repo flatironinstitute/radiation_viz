@@ -18,8 +18,8 @@ or
 $ python -m radiation_viz.build_plan \
     /mnt/home/yjiang/ceph/CVDisk/CVIsoB2/Data_finished \
     /mnt/ceph/users/awatters/viz \
-    --limit 10 --clean  --var_substring rho \
-    --out /mnt/ceph/users/awatters/viz/logs > plan.sh
+    --limit 2 --clean  --var_substring rho \
+    --out /mnt/ceph/users/awatters/logs > plan.sh
 
 Then to execute on the cluster in flatiron:
 
@@ -80,7 +80,8 @@ class BuildPlan:
             clean_option = "--clean"
         if args.var_substring:
             substring_option = "--var_substring " + args.var_substring
-        skip_option = ""
+        # disable truncated output if skip is not specified
+        skip_option = "--skip 0"
         if (args.skip):
             skip_option = "--truncated --skip " + repr(args.skip)
         count = 0
