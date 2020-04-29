@@ -17,9 +17,17 @@ or
 
 $ python -m radiation_viz.build_plan \
     /mnt/home/yjiang/ceph/CVDisk/CVIsoB2/Data_finished \
-    /mnt/ceph/users/awatters/viz/processed_data/viz \
+    /mnt/ceph/users/awatters/viz \
     --limit 10 --clean  --var_substring rho \
-    --out /mnt/ceph/users/awatters/viz/ > plan.sh
+    --out /mnt/ceph/users/awatters/viz/logs > plan.sh
+
+Then to execute on the cluster in flatiron:
+
+ % module load slurm
+ % module load disBatch
+ % sbatch -n 5 --ntasks-per-node 5 --wrap "disBatch.py plan.sh"
+Submitted batch job 552107
+
 """
 
 import argparse
@@ -72,7 +80,9 @@ class BuildPlan:
             clean_option = "--clean"
         if args.var_substring:
             substring_option = "--var_substring " + args.var_substring
-        skip_option = "--truncated --skip " + repr(args.skip)
+        skip_option = ""
+        if (args.skip):
+            skip_option = "--truncated --skip " + repr(args.skip)
         count = 0
         for path in files:
             redir = self.redirect(path)
