@@ -48,6 +48,7 @@ class BuildPlan:
         a("--skip", help="Skip stride for truncated views (default to full resolution).", type=int, default=0)
         a("--out", help="Directory for output files.", default="")
         self.args = parser.parse_args()
+        self.out = None
         out = self.args.out
         if (out):
             self.out = self.fix_path(out)
