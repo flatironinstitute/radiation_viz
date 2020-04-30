@@ -1,6 +1,15 @@
 
 """
 Process radiation data files into web viewable formats.
+
+This implementation is designed to work with the Node.js
+scraping logic in ../image_capturer.
+
+It also assumes the existence of the node based web server http-server.
+
+npm install -g http-server
+
+https://jasonwatmore.com/post/2016/06/22/nodejs-setup-simple-http-server-local-web-server
 """
 
 import argparse
@@ -146,7 +155,7 @@ class Runner:
                 return
         if os.path.exists(folder):
             if self.verbose:
-                print("deleting exiting folder " + repr(folder))
+                print("deleting existing folder " + repr(folder))
             shutil.rmtree(folder)
         if self.verbose:
             print("Setting up directory " + repr(folder))
