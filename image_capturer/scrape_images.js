@@ -39,6 +39,7 @@ var run = (async() => {
     await page.goto(initial_url, { waitUntil: 'networkidle2' });
     console.log(await page.evaluate("'Scraper webgl engine detected: ' + detect_gpu()"));
     var count = 0;
+    await sleep(10000);
     while ((limit <= 0) || (count < limit)) {
         await page.waitForFunction('voxels_drawn');
         var prefix = await page.evaluate('chosen_prefix');
@@ -69,8 +70,9 @@ var run = (async() => {
         console.log("scraper at " + count + " wrote " + path);
         var next_url = await page.evaluate("load_next('', true)")
         if (next_url) {
-            console.log("scraper loading next url: " + next_url);
+            console.log("scraper loading next url and sleeping: " + next_url);
             await page.goto(next_url, { waitUntil: 'networkidle2' });
+            await sleep(10000);
         } else {
             console.log("scraper: no next url at " + count);
             break;
