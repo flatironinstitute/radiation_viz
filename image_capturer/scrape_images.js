@@ -66,7 +66,7 @@ var run = (async() => {
         });
         
         count ++;
-        console.log("scraper at" + count + " wrote " + path);
+        console.log("scraper at " + count + " wrote " + path);
         var next_url = await page.evaluate("load_next('', true)")
         if (next_url) {
             console.log("scraper loading next url: " + next_url);
