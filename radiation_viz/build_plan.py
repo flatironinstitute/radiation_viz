@@ -18,8 +18,8 @@ or
 $ python -m radiation_viz.build_plan \
     /mnt/home/yjiang/ceph/CVDisk/CVIsoB2/Data_finished \
     /mnt/ceph/users/awatters/viz \
-    --limit 2 --clean  --var_substring rho \
-    --out /mnt/ceph/users/awatters/logs > plan.sh
+    --clean  --var_substring rho \
+    --out /mnt/ceph/users/awatters/logs --limit 10 > plan.sh
 
 Then to execute on the cluster in flatiron:
 
