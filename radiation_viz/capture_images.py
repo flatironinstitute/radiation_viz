@@ -11,7 +11,7 @@ Example:
 
 python -m radiation_viz.capture_images \
      --to_directory ~/tmp/viz \
-     --http_directory ~/misc/Yan-Fei_Jiang/eg_small \
+     --http_directory ~/tmp/radiation_test \
      --node_directory ~/repos/radiation_viz/image_capturer \
      --limit 5
 """
