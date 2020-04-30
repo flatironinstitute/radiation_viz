@@ -39,6 +39,11 @@ var run = (async() => {
     await page.goto(initial_url, { waitUntil: 'networkidle2' });
     console.log(await page.evaluate("'Scraper webgl engine detected: ' + detect_gpu()"));
     var count = 0;
+    function sleep(time) {
+        return new Promise(function(resolve) { 
+            setTimeout(resolve, time)
+        });
+    }
     await sleep(10000);
     while ((limit <= 0) || (count < limit)) {
         await page.waitForFunction('voxels_drawn');
