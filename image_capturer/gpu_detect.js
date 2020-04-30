@@ -34,6 +34,7 @@ srun: job 553633 has been allocated resources
 (nodetest) bash-4.2$ node gpu_detect.js 
 HeadlessChrome/81.0.4044.0
 Tesla P100-PCIE-16GB/PCIe/SSE2
+(base) bash-4.2$ 
 (nodetest) bash-4.2$ exit
 
 Indicates the Tesla P100-PCIE-16GB/PCIe/SSE2 will be used
