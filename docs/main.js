@@ -3,6 +3,9 @@
 var DATA_DIR = "./processed_data";
 var CONFIG_FILENAME = "./config.json";
 
+// limit dropdown to this length
+var option_limit = 100;
+
 var json_data, json_config, chosen_prefix, chosen_index, searchParams, main_url;
 var voxels_canvas, surface_canvas;
 var voxels_context, surface_context;
@@ -28,7 +31,7 @@ var load_config = function() {
 
 var process_config = function(data) {
     json_config = data
-    div_status.html("initializing.");
+    div_status.html("initializing: " + detect_gpu());
     var files_info = data.files;
     chosen_prefix = files_info[0].prefix;
     chosen_index = 0;
@@ -59,6 +62,9 @@ var process_config = function(data) {
             option.attr("selected", "selected");
         }
         selection.append(option);
+        if (i > option_limit) {
+            break;
+        }
     }
     var select_change = function() {
         var val = selection.val();
@@ -69,7 +75,27 @@ var process_config = function(data) {
     load_json(chosen_prefix);
 };
 
-var load_next = function(match_string) {
+var detect_gpu = function() {
+    var canvas = document.createElement('canvas');
+    var gl;
+    var debugInfo;
+    var vendor;
+    var renderer = "WEBGL NOT SUPPORTED";
+
+    try {
+        gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    } catch (e) {
+    }
+
+    if (gl) {
+        debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+        renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+    }
+    return renderer;
+};
+
+var load_next = function(match_string, delayed) {
     var data = json_config;
     var files_info = data.files;
     var next_index;
@@ -90,8 +116,13 @@ var load_next = function(match_string) {
     chosen_index = next_index;
     chosen_prefix = next_prefix;
     var camera_json = get_camera_json_string();
-    document.location.href = main_url + "?q=" + chosen_prefix + "&camera=" + camera_json;
-    return chosen_prefix;
+    // invalidate the json data
+    json_data = null;
+    var href = main_url + "?q=" + chosen_prefix + "&camera=" + camera_json;
+    if (!delayed) {
+        document.location.href = href;
+    }
+    return href;
 };
 
 var load_json = function(prefix, next_action) {
