@@ -3,7 +3,10 @@
 
 Report on what GPU hardware if any the headless browser will use.
 
-Run on a mac:
+
+Run the script on a machine and examine the output: for example
+
+1) Run on a mac:
 
 $ node gpu_detect.js 
 (node:36263) ExperimentalWarning: The fs.promises API is experimental
@@ -11,6 +14,29 @@ Chrome/81.0.4044.129
 AMD Radeon Pro 560X OpenGL Engine
 
 Indicates the AMD GPU will be used.
+
+2) Run on a Linux machine with no GPU:
+
+$ node gpu_detect.js 
+HeadlessChrome/81.0.4044.0
+Google SwiftShader
+
+Indicates that the SwiftShader software emulation will be used (this is very slow!).
+
+3) Run on a cluster node with a GPU but no display (in the flatiron cluster):
+
+(nodetest) -bash-4.2$ module load slurm
+(nodetest) -bash-4.2$ srun -N1 --pty --exclusive --gres=gpu:1 -p gpu bash -i
+srun: job 553633 queued and waiting for resources
+srun: job 553633 has been allocated resources
+(base) bash-4.2$ 
+(base) bash-4.2$ source activate nodetest
+(nodetest) bash-4.2$ node gpu_detect.js 
+HeadlessChrome/81.0.4044.0
+Tesla P100-PCIE-16GB/PCIe/SSE2
+(nodetest) bash-4.2$ exit
+
+Indicates the Tesla P100-PCIE-16GB/PCIe/SSE2 will be used
 
 Possible arguments
 
