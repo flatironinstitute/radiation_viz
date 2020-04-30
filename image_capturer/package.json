@@ -1,0 +1,30 @@
+{
+  "name": "image_capturer",
+  "version": "1.0.0",
+  "description": "Capture images from a radiation_viz visualization instance.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/flatironinstitute/radiation_viz.git"
+  },
+  "keywords": [
+    "headless",
+    "browser",
+    "webgl",
+    "image",
+    "capture"
+  ],
+  "author": "Aaron Watters",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/flatironinstitute/radiation_viz/issues"
+  },
+  "homepage": "https://github.com/flatironinstitute/radiation_viz#readme",
+  "dependencies": {
+    "jimp": "^0.10.3",
+    "puppeteer": "^3.0.2"
+  }
+}
