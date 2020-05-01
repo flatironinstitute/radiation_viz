@@ -28,7 +28,7 @@ v13.13.0
 
 - Install the `radiation_viz` Python 3 module as described in its <a href="README.md">README</a>.
 
-- Install the `image_capturer` node components as described in its <a href="image_capturer/README.txt">READMe</a>.
+- Install the `image_capturer` node components as described in its <a href="image_capturer/README.txt">README</a>.
 
 ```
 $ cd image_capturer
@@ -192,15 +192,17 @@ $ python -m radiation_viz.build_plan \
 
 The above generates a plan for creating a visualization tree from up to 3000 files
 
-- Matching `*.athdf` 
+- Matching `*.athdf` by default
 - Found in the `/mnt/home/yjiang/ceph/CVDisk/CVIsoB2/Data_finished` directory
 - The tree will be built at `/mnt/ceph/users/awatters/viz`
 - Only the variable `rho` in the input files will be processed.
 - The `--clean` flag specifies that if the `/mnt/ceph/users/awatters/viz` folder exists it should be deleted and replaced.
 - Diagnostic log files will be written to `/mnt/ceph/users/awatters/logs`.
+- By default the data will be kept at full resolution (which is not performant for interactive viewing).
 
 Since each command line of the plan takes a couple minutes to execute on a single core,
-we submit the commands in the plan to a batch scheduler.  At flatiron we use `slurm` and `disBatch` like this:
+we submit the commands in the plan to a batch scheduler on a computation cluster.  
+At flatiron we use `slurm` and `disBatch` like this:
 
 ```
 $ module load slurm
@@ -232,11 +234,59 @@ The image capture sequence allows the specification of an iso-surface cutoff val
 using a `camera_settings.json` data file.  In your browser view of the visualization set the camera
 position and cutoff value as desired and then download the settings file using the "Download camera settings" button.
 
-Stop the web server in the console using CONTROL-C.
+Stop the web server in the console using CONTROL-C when you are done viewing the visualization interactively.
 
 ## Generate the image frames from the visualization tree.
 
+### On my laptop:
 
+```
+python -m radiation_viz.capture_images \
+     --to_directory ~/tmp/viz \
+     --http_directory ~/tmp/radiation_test \
+     --node_directory ~/repos/radiation_viz/image_capturer \
+     --settings_path ~/repos/radiation_viz/radiation_viz/example_camera_settings.json \
+     --limit 5
+```
+
+### On the cluster, in interactive mode:
+
+```
+$ module load slurm
+$ srun -N1 --pty --exclusive --gres=gpu:1 -p gpu bash -i
+$ source activate nodetest
+$ python -m radiation_viz.capture_images \
+     --to_directory /mnt/ceph/users/awatters/images \
+     --http_directory /mnt/ceph/users/awatters/viz \
+     --node_directory ~/repos/radiation_viz/image_capturer \
+     --settings_path ~/repos/radiation_viz/radiation_viz/example_camera_settings.json \
+     --limit 300
+```
+
+The `--exclusive --gres=gpu:1 -p gpu` options to `srun` request a GPU enabled node
+in exclusive mode to guarantee the GPU is available.  Check the output to make sure
+it reports a valid GPU.  If you see this in the output, it did not use a GPU:
+
+```
+Scraper webgl engine detected: Google SwiftShader
+```
+
+### On the cluster in batch mode
+
+At flatiron submit a shell job similar to the `capture.sh` example
+<a href="radiation_viz/capture.sh">here</a> like this:
+
+```
+$ sbatch capture.sh
+```
 
 ## Combine the image frames into a video.
 
+The following command will create a video named `video.webm`
+from the images matching the glob pattern `disk*.png` in the current directory.
+
+```
+$ ffmpeg -framerate 1/1 -pattern_type glob -i "disk*.png" video.webm
+```
+
+Above `-framerate 1/1` reads "One frame per one second".  A framerate of `1/60` would give 60 frames per second.

@@ -7,6 +7,15 @@ visualization.
 - Wait for the scraper script to terminate.
 - Terminate the http server.
 
+This implementation is designed to work with the Node.js
+scraping logic in ../image_capturer.
+
+It also assumes the existence of the node based web server http-server.
+
+npm install -g http-server
+
+https://jasonwatmore.com/post/2016/06/22/nodejs-setup-simple-http-server-local-web-server
+
 Example:
 
 python -m radiation_viz.capture_images \

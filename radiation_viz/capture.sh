@@ -2,7 +2,7 @@
 
 # request a single gpu node for the run.
 
-#SBATCH -N1  --exclusive --gres=gpu:1 -p gpu
+#SBATCH -N1 --exclusive --gres=gpu:1 -p gpu
 
 # module load slurm
 # srun -N1 --gres=gpu:1 -p gpu bash capture.sh
