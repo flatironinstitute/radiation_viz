@@ -153,3 +153,12 @@ resolution data views due the the size of the data.
 
 A simplified example data file is packaged with the repository under the `example_source_data` directory.
 Please see `example_source_data/README.txt` for more information.
+
+The package includes support for automatically capturing canvas frames using
+<a href="https://developers.google.com/web/tools/puppeteer">Puppeteer</a>
+in combination with 
+<a href="https://developers.google.com/web/updates/2017/04/headless-chrome">headless Chrome</a>.
+The captured images can be combined into video sequences using 
+<a href="https://ffmpeg.org/ffmpeg.html">ffmpeg.</a>
+Please see the 
+<a href="video_work_flow.md">Video Work Flow</a> documentation for more information.
