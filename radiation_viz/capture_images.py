@@ -14,6 +14,19 @@ python -m radiation_viz.capture_images \
      --http_directory ~/tmp/radiation_test \
      --node_directory ~/repos/radiation_viz/image_capturer \
      --limit 5
+
+On the cluster
+
+$ module load slurm
+$ srun -N1 --pty --exclusive --gres=gpu:1 -p gpu bash -i
+$ source activate nodetest
+$ python -m radiation_viz.capture_images \
+     --to_directory /mnt/ceph/users/awatters/images \
+     --http_directory /mnt/ceph/users/awatters/viz \
+     --node_directory ~/repos/radiation_viz/image_capturer \
+     --limit 30
+
+See capture.sh for an example of submitting a batch job.
 """
 
 import os
