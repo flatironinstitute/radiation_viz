@@ -26,18 +26,23 @@ var run = (async() => {
     var to_directory = argv[3];
     var initial_url = argv[2];
     var limit = +(argv[4]);
+    var TIMEOUT = 120000;
     console.log(`Starting with ${initial_url} scrape images and put them in ${to_directory} up to ${limit} (no limit if limit<=0).`);
 
     // should refactor common logic xxxx
     var parameters = {};
     parameters.headless = true;
-    parameters.timeout = 120000; // wait 2 minutes before timeout
+    parameters.timeout = TIMEOUT; // wait 2 minutes before timeout
+    console.log("Starting browser with timeout", parameters.timeout)
     parameters.args = ["--no-sandbox", "--use-gl=egl"];
     browser = await puppeteer.launch(parameters);
     console.log(await browser.version());
     const page = await browser.newPage();
     await page.setViewport({width: 6000, height:3000});
+    await page.setDefaultNavigationTimeout(TIMEOUT);
+    await page.setDefaultTimeout(TIMEOUT);
     await page.goto(initial_url, { waitUntil: 'networkidle2' });
+    //var waitparameters = { timeout: TIMEOUT };
     console.log(await page.evaluate("'Scraper webgl engine detected: ' + detect_gpu()"));
     var count = 0;
     function sleep(time) {
