@@ -13,6 +13,7 @@ python -m radiation_viz.capture_images \
      --to_directory ~/tmp/viz \
      --http_directory ~/tmp/radiation_test \
      --node_directory ~/repos/radiation_viz/image_capturer \
+     --settings_path ~/Downloads/camera_settings.json \
      --limit 5
 
 On the cluster
@@ -26,12 +27,17 @@ $ python -m radiation_viz.capture_images \
      --node_directory ~/repos/radiation_viz/image_capturer \
      --limit 30
 
-See capture.sh for an example of submitting a batch job.
+See capture.sh for an example of submitting a batch job. 
+
+Use ffmpeg to combine the captured images into a video, like this
+
+$ ffmpeg -framerate 1/1 -pattern_type glob -i "disk*.png" video.webm
 """
 
 import os
 import argparse
 import subprocess
+import urllib.parse
 
 SERVER_EXECUTABLE = "http-server"
 SCRAPER_NODE_SCRIPT = "scrape_images.js"
@@ -45,6 +51,7 @@ class Runner:
         a("--http_directory", help="Directory containing the index.html file for the visualization.", required=True)
         a("--node_directory", help="Directory containing the node scripts.", required=True)
         a("--url_parameters", help="URL or URL arguments containing initial image and/or camera settings.", default='')
+        a("--settings_path", help="Camera settings file path containing camera settings parameters.")
         a("--limit", help="Maximum number of images to capture (default all).", type=int, default=0)
         a("--port", help="Port where to run the server (default 9393).", type=int, default=9393)
         #a("--mac", help="Use Mac chrome configuration.", action="store_true")
@@ -63,12 +70,24 @@ class Runner:
         assert os.path.isfile(index), repr(index) + " must be an existing file."
         self.to_directory = self.fix_path(args.to_directory)
         params = args.url_parameters
+        settings_path = args.settings_path
+        assert not params or not settings_path, "--params and --settings_path are not supported together."
         if "?" in params:
             try:
                 [params] = params.split("?")[1:]
             except:
                 raise ValueError(repr(params) + " invalid url parameters.")
+        if settings_path:
+            settings_path = self.fix_path(settings_path)
+            camera_settings = open(settings_path).read()
+            # trim of leading garbage like utf bom markers until "("
+            while camera_settings[0:1] != "{":
+                camera_settings = camera_settings[1:]
+                assert camera_settings, "camera settings file must contain a valid json object: " + repr(settings_path)
+            params = "camera=" + urllib.parse.quote(camera_settings)
         self.params = params
+        if self.verbose:
+            print ("using url params: " + repr(self.params))
 
     def fix_path(self, path):
         return os.path.abspath(os.path.expanduser(path))
