@@ -13,7 +13,7 @@ python -m radiation_viz.capture_images \
      --to_directory ~/tmp/viz \
      --http_directory ~/tmp/radiation_test \
      --node_directory ~/repos/radiation_viz/image_capturer \
-     --settings_path ~/Downloads/camera_settings.json \
+     --settings_path ~/repos/radiation_viz/radiation_viz/example_camera_settings.json \
      --limit 5
 
 On the cluster
@@ -25,6 +25,7 @@ $ python -m radiation_viz.capture_images \
      --to_directory /mnt/ceph/users/awatters/images \
      --http_directory /mnt/ceph/users/awatters/viz \
      --node_directory ~/repos/radiation_viz/image_capturer \
+     --settings_path ~/repos/radiation_viz/radiation_viz/example_camera_settings.json \
      --limit 30
 
 See capture.sh for an example of submitting a batch job. 
@@ -116,8 +117,8 @@ class Runner:
     def run_scraper(self):
         args = self.args
         initial_url = "http://127.0.0.1:%s/index.html" % (args.port)
-        if args.url_parameters:
-            initial_url = "%s?%s" % (initial_url, args.url_parameters)
+        if self.params:
+            initial_url = "%s?%s" % (initial_url, self.params)
         #mac_option = "linux"
         #if args.mac:
         #    mac_option = "mac"
