@@ -31,6 +31,7 @@ var run = (async() => {
     // should refactor common logic xxxx
     var parameters = {};
     parameters.headless = true;
+    parameters.timeout = 120000; // wait 2 minutes before timeout
     parameters.args = ["--no-sandbox", "--use-gl=egl"];
     browser = await puppeteer.launch(parameters);
     console.log(await browser.version());
@@ -44,7 +45,7 @@ var run = (async() => {
             setTimeout(resolve, time)
         });
     }
-    await sleep(10000);
+    //await sleep(10000);
     while ((limit <= 0) || (count < limit)) {
         await page.waitForFunction('voxels_drawn');
         var prefix = await page.evaluate('chosen_prefix');
@@ -77,7 +78,7 @@ var run = (async() => {
         if (next_url) {
             console.log("scraper loading next url and sleeping: " + next_url);
             await page.goto(next_url, { waitUntil: 'networkidle2' });
-            await sleep(10000);
+            //await sleep(10000);
         } else {
             console.log("scraper: no next url at " + count);
             break;
