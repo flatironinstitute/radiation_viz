@@ -18,5 +18,5 @@ python -m radiation_viz.capture_images \
      --http_directory /mnt/ceph/users/awatters/viz \
      --node_directory ~/repos/radiation_viz/image_capturer \
      --settings_path ~/repos/radiation_viz/radiation_viz/example_camera_settings.json \
-     --limit 3000 > /mnt/ceph/users/awatters/logs/capture.log
+     --limit 3000 > /mnt/ceph/users/awatters/logs/capture.log  2>&1
 
