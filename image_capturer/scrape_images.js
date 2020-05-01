@@ -53,6 +53,8 @@ var run = (async() => {
     // wait for page to initialize just once?
     await sleep(10000);
     while ((limit <= 0) || (count < limit)) {
+        await page.waitForFunction('!!json_config');
+        console.log("JSON config detected.")
         await page.waitForFunction('voxels_drawn');
         var prefix = await page.evaluate('chosen_prefix');
         console.log("at " + count + " scraping prefix " + prefix);
