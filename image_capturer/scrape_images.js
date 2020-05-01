@@ -50,7 +50,8 @@ var run = (async() => {
             setTimeout(resolve, time)
         });
     }
-    //await sleep(10000);
+    // wait for page to initialize just once?
+    await sleep(10000);
     while ((limit <= 0) || (count < limit)) {
         await page.waitForFunction('voxels_drawn');
         var prefix = await page.evaluate('chosen_prefix');
