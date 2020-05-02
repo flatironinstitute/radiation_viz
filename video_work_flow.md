@@ -289,4 +289,10 @@ from the images matching the glob pattern `disk*.png` in the current directory.
 $ ffmpeg -framerate 1/1 -pattern_type glob -i "disk*.png" video.webm
 ```
 
-Above `-framerate 1/1` reads "One frame per one second".  A framerate of `1/60` would give 60 frames per second.
+Above `-framerate 1/1` reads "one frame in one second".  Omit this option
+for a normal frame rate.  The following makes a video with 20 frames
+per second with supposedly higher quality:
+
+```
+$ ffmpeg -r 20 -pattern_type glob -i "disk*.png" -crf 25 video.webm
+```
