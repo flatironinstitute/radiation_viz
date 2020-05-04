@@ -253,6 +253,7 @@ python -m radiation_viz.capture_images \
 
 ```
 $ module load slurm
+$ # start an xrun on a GPU node
 $ srun -N1 --pty --exclusive --gres=gpu:1 -p gpu bash -i
 $ source activate nodetest
 $ python -m radiation_viz.capture_images \
@@ -261,6 +262,7 @@ $ python -m radiation_viz.capture_images \
      --node_directory ~/repos/radiation_viz/image_capturer \
      --settings_path ~/repos/radiation_viz/radiation_viz/example_camera_settings.json \
      --limit 300
+$ exit # from xrun on GPU node
 ```
 
 The `--exclusive --gres=gpu:1 -p gpu` options to `srun` request a GPU enabled node
