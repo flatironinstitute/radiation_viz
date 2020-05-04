@@ -949,6 +949,12 @@ Structure follows: https://learn.jquery.com/plugins/basic-plugin-creation/
                     offsets[C_index[iTetrahedronNumber]],
                     offsets[D_INDEX]
                 );
+                vec3[4] grid_locations = vec3[](
+                    grid_location(t_offsets[0]),
+                    grid_location(t_offsets[1]),
+                    grid_location(t_offsets[2]),
+                    grid_location(t_offsets[3])
+                );
                 // weights as array
                 float wts[N_CORNERS] = float[](
                     front_corners[0], front_corners[1], front_corners[2], front_corners[3], 
@@ -978,8 +984,8 @@ Structure follows: https://learn.jquery.com/plugins/basic-plugin-creation/
                     
                     int SegL = SegLs[iVertexNumber];
                     int SegR = SegRs[iVertexNumber];
-                    vec3 offsetL = t_offsets[SegL];
-                    vec3 offsetR = t_offsets[SegR];
+                    vec3 offsetL = grid_locations[SegL];
+                    vec3 offsetR = grid_locations[SegR];
                     
                     float wtL = t_wts[SegL];
                     float wtR = t_wts[SegR];
@@ -989,20 +995,15 @@ Structure follows: https://learn.jquery.com/plugins/basic-plugin-creation/
                     //vec3 vertex = combined_offset + vec3(col_num, row_num, layer_num);
                     //vec3 vertex = combined_offset + vec3(layer_num, row_num, col_num);
                     //vec3 vertex = combined_offset + location_offset;
-                    vec3 vertex = grid_location(combined_offset);
+                    //vec3 vertex = grid_location(combined_offset);
+                    vec3 vertex = combined_offset;
                     vPosition = dx * vertex[0] + dy * vertex[1] + dz * vertex[2] + translation;
                     gl_Position.xyz = vPosition;
                     gl_Position[3] = 1.0;
                     //vdump = float[4](vertex[0], vertex[1], vertex[2], delta);
 
+                    // XXXX the following computes a normal for the tetrahedron.  Maybe should compute the other triangle points and compute normal?
                     // compute normal in terms of grid locations for tetrahedral vertices
-                    vec3[4] grid_locations = vec3[](
-                        grid_location(t_offsets[0]),
-                        grid_location(t_offsets[1]),
-                        grid_location(t_offsets[2]),
-                        grid_location(t_offsets[3])
-                    );
-
                     vec3 center = (grid_locations[0] + grid_locations[1] + grid_locations[2] + grid_locations[3])/4.0;
                     vec3 nm = ( 
                         + (grid_locations[0] - center) * (t_wts[0] - uValue) 
@@ -1301,11 +1302,12 @@ Structure follows: https://learn.jquery.com/plugins/basic-plugin-creation/
                     that.link_needs_update = true;
                 }
                 var check_update_link = function(nbins) {
+                    // update the surface if needed, using nbins for normal_binning if provided.
                     var do_clean = clean || nbins;
                     var bin_size = nbins || normal_binning;
                     // update the geometry positions array in place and mark for update in geometry
                     if ((!that.link_needs_update) && (!nbins)) {
-                        // only update upon request and only if needed
+                        // only update upon request and only if needed, or if binning was specified
                         that.link_needs_update = false;
                         return;
                     }
