@@ -981,37 +981,26 @@ Structure follows: https://learn.jquery.com/plugins/basic-plugin-creation/
                 if (U_left[ci] >= 0) {
                     int SegLs[N_VERTICES] = int[](U_left[ci], V_left[ci], W_left[ci]);
                     int SegRs[N_VERTICES] = int[](U_right[ci], V_right[ci], W_right[ci]);
-                    
-                    int SegL = SegLs[iVertexNumber];
-                    int SegR = SegRs[iVertexNumber];
-                    vec3 offsetL = grid_locations[SegL];
-                    vec3 offsetR = grid_locations[SegR];
-                    
-                    float wtL = t_wts[SegL];
-                    float wtR = t_wts[SegR];
-                    // check denominator is not too small? xxxx
-                    float delta = (wtL - uValue) / (wtL - wtR);
-                    vec3 combined_offset = ((1.0 - delta) * offsetL) + (delta * offsetR);
-                    //vec3 vertex = combined_offset + vec3(col_num, row_num, layer_num);
-                    //vec3 vertex = combined_offset + vec3(layer_num, row_num, col_num);
-                    //vec3 vertex = combined_offset + location_offset;
-                    //vec3 vertex = grid_location(combined_offset);
-                    vec3 vertex = combined_offset;
+                    vec3[N_VERTICES] combined_offsets;
+                    // compute intercepts for all vertices of the triangle
+                    for (int vnum=0; vnum<N_VERTICES; vnum++) {
+                        int SegL = SegLs[vnum];
+                        int SegR = SegRs[vnum];
+                        vec3 offsetL = grid_locations[SegL];
+                        vec3 offsetR = grid_locations[SegR];
+                        float wtL = t_wts[SegL];
+                        float wtR = t_wts[SegR];
+                        // check denominator is not too small? xxxx
+                        float delta = (wtL - uValue) / (wtL - wtR);
+                        combined_offsets[vnum] = ((1.0 - delta) * offsetL) + (delta * offsetR);
+                    }
+                    vec3 vertex = combined_offsets[iVertexNumber];
                     vPosition = dx * vertex[0] + dy * vertex[1] + dz * vertex[2] + translation;
                     gl_Position.xyz = vPosition;
                     gl_Position[3] = 1.0;
                     //vdump = float[4](vertex[0], vertex[1], vertex[2], delta);
 
-                    // XXXX the following computes a normal for the tetrahedron.  Maybe should compute the other triangle points and compute normal?
-                    // compute normal in terms of grid locations for tetrahedral vertices
-                    vec3 center = (grid_locations[0] + grid_locations[1] + grid_locations[2] + grid_locations[3])/4.0;
-                    vec3 nm = ( 
-                        + (grid_locations[0] - center) * (t_wts[0] - uValue) 
-                        + (grid_locations[1] - center) * (t_wts[1] - uValue) 
-                        + (grid_locations[2] - center) * (t_wts[2] - uValue) 
-                        + (grid_locations[3] - center) * (t_wts[3] - uValue) 
-                        );
-                    
+                    vec3 nm = cross(combined_offsets[1] - combined_offsets[0], combined_offsets[2] - combined_offsets[0]);
                     float ln = length(nm);
                     if (ln > 1e-12) {
                         vNormal = nm / ln;
