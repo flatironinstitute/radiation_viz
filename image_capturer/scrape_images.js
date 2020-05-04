@@ -58,7 +58,8 @@ var run = (async() => {
         await page.waitForFunction('voxels_drawn');
         var prefix = await page.evaluate('chosen_prefix');
         console.log("at " + count + " scraping prefix " + prefix);
-        await page.evaluate("initialize_surface();")
+        //await page.evaluate("initialize_surface();")
+        await page.evaluate("smooth_surface();")
         await page.waitForFunction('surface_drawn');
         await page.evaluate("stop_animation = true");
         console.log("scraper: now getting canvas data");
