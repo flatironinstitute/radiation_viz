@@ -261,6 +261,8 @@ var do_plot = function () {
         sync_cameras();
     });
 
+    $("#smooth_button").click(smooth_surface);
+
     var col_slider = set_up_dim_slider("X_slider", json_data.r_size, 2, "Phi limits");
     var row_slider = set_up_dim_slider("Y_slider", json_data.theta_size, 1, "Theta limits");
     var layer_slider = set_up_dim_slider("Z_slider", json_data.phi_size, 0, "R limits");
@@ -406,11 +408,21 @@ var download_camera_settings = function () {
     saveAs(the_blob, name);
 };
 
-var update_surface = function () {
+var update_surface = function (nbins) {
     surfaces.run();
-    surfaces.check_update_link();
+    surfaces.check_update_link(nbins);
     sync_cameras();
     surface_renderer.render( surface_scene, surface_camera, null );
+};
+
+// Bin size for unifying normals for smooth visual effect.
+var SMOOTHING_BINS = 10000;
+
+var smooth_surface = function () {
+    if (!surface_initialized) {
+        sync_surface();
+    }
+    return update_surface(SMOOTHING_BINS);
 };
 
 var initialize_surface = function () {
