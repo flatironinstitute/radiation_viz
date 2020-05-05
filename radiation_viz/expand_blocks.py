@@ -260,7 +260,8 @@ class InterpolateBlocks:
 
     # try to optimize lookups
     
-    def __init__(self, block_interpolators, default=None):
+    def __init__(self, block_interpolators, limits, default=None):
+        self.limits = limits
         blocks = block_interpolators
         sort_index = 0
         self.x_block_list = sorted((b.maxes[sort_index], b) for b in blocks)
@@ -342,6 +343,10 @@ class InterpolateBlocks:
         #print("b2 interpolating", xyz)
         # try to find in precomputed borders
         borders = self.borders
+        # wrap limited dimensions
+        for (index, limit) in enumerate(self.limits):
+            if limit is not None and xyz[index] >= limit:
+                xyz[index] = 0
         txyz = tuple(xyz)
         hit = borders.get(txyz, None)
         if hit is not None:
@@ -389,8 +394,7 @@ class InterpolateBlocks:
         self.last_block = block
         return result
 
-"""historical
-def interpolator_from_arrays(intensities, x_values, y_values, z_values):
+def interpolator_from_arrays(intensities, x_values, y_values, z_values, limits):
      blocks = []
      for (index, chunk) in enumerate(intensities):
          x_chunk = x_values[index]
@@ -398,16 +402,5 @@ def interpolator_from_arrays(intensities, x_values, y_values, z_values):
          z_chunk = z_values[index]
          b = BlockInterpolator(chunk, x_chunk, y_chunk, z_chunk)
          blocks.append(b)
-     return InterpolateBlocks(blocks)
-"""
-
-def interpolator_from_arrays(intensities, x_values, y_values, z_values):
-     blocks = []
-     for (index, chunk) in enumerate(intensities):
-         x_chunk = x_values[index]
-         y_chunk = y_values[index]
-         z_chunk = z_values[index]
-         b = BlockInterpolator(chunk, x_chunk, y_chunk, z_chunk)
-         blocks.append(b)
-     return InterpolateBlocks(blocks)
+     return InterpolateBlocks(blocks, limits)
 
