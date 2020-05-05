@@ -10,6 +10,10 @@ graphics acceleration.
 
 # Requirements
 
+The workflow requires some software installed in the environment.
+In my case I used `conda` to install the software on the flatiron cluster
+managed within a `conda` environment `nodetest` for convenience.
+
 You will need recent versions of the `node` intepreter with the `npm` package manager and the 
 <a href="https://ffmpeg.org/ffmpeg.html">ffmpeg</a> conversion program to run the video
 creation workflow. 
@@ -238,7 +242,17 @@ Stop the web server in the console using CONTROL-C when you are done viewing the
 
 ## Generate the image frames from the visualization tree.
 
+The `radiation_viz.capture_images` script will launch
+a web server and a `puppeteer` script which accesses the
+web server in order to capture WebGL canvas images for a sequence
+of frames generated from the data files generated in previous steps.
+In the case illustrated below each of the input data files generates
+one captured image and
+one frame of the final video.
+
 ### On my laptop:
+
+The following invocation captures data frames on my laptop:
 
 ```
 python -m radiation_viz.capture_images \
@@ -249,13 +263,46 @@ python -m radiation_viz.capture_images \
      --limit 5
 ```
 
-### On the cluster, in interactive mode:
+It captures images:
+
+- Saved to ``
+- From HTTP tree `~/tmp/radiation_test`
+- Using node scripts found at `~/repos/radiation_viz/image_capturer`
+- With isosurface cutoff and camera position specified in `~/repos/radiation_viz/radiation_viz/example_camera_settings.json`
+- No more than 5 frames.
+
+The script converts the input data files
+```
+
+$ ls ~/tmp/radiation_test/processed_data/
+disk.out1.13926_rho_full.bin	disk.out1.13926_rho_full.json	small_data_test.bin		small_data_test.json
+```
+
+To captured images
 
 ```
+$ ls ~/tmp/viz
+disk.out1.13926_rho_full.png	disk.out1.13926_rho_skip_4.png	small_data_test.png
+```
+
+### On the cluster, in interactive mode:
+
+To capture thousands of images it is convenient to run the capture on the flatiron
+computational cluster.  To test that the capture process works on the cluster
+you can capture some images in interactive mode after allocating a node with a 
+GPU.
+The following captures up to 300 images when run on the cluster.
+
+```bash
 $ module load slurm
 $ # start an xrun on a GPU node
 $ srun -N1 --pty --exclusive --gres=gpu:1 -p gpu bash -i
-$ source activate nodetest
+
+### There may be a pause while the srun is allocated a GPU node ###
+
+$ # Activate the conda environment containing the node interpreter (may not be needed)
+$ source activate nodetest 
+$ # Run the capture script
 $ python -m radiation_viz.capture_images \
      --to_directory /mnt/ceph/users/awatters/images \
      --http_directory /mnt/ceph/users/awatters/viz \
@@ -273,8 +320,11 @@ it reports a valid GPU.  If you see this in the output, it did not use a GPU:
 Scraper webgl engine detected: Google SwiftShader
 ```
 
+The scraping script will time-out shortly after this message.
+
 ### On the cluster in batch mode
 
+Longer capture runs can take hours to complete and are best run in batch mode.
 At flatiron submit a shell job similar to the `capture.sh` example
 <a href="radiation_viz/capture.sh">here</a> like this:
 
@@ -282,8 +332,13 @@ At flatiron submit a shell job similar to the `capture.sh` example
 $ sbatch capture.sh
 ```
 
+The capture script launches a batch job similar to the `srun` above
+but it capture up to 3000 frames.
+
 ## Combine the image frames into a video.
 
+After the image files for the video frames have been captured,
+use `ffmpeg` to combine the frames into a video.
 The following command will create a video named `video.webm`
 from the images matching the glob pattern `disk*.png` in the current directory.
 
