@@ -28,7 +28,7 @@ class BlockDescriptions:
     def interpolator(self):
         # Wrap around phi at 2*pi
         limits = [None, None, 2 * np.pi - 1e-10]
-        limits = [None, None, None] # for testing
+        #limits = [None, None, None] # for testing
         return expand_blocks.interpolator_from_arrays(self.values, self.rs, self.thetas, self.phis, limits)
 
     def interp_data_cube(self, side, default=0.0, substitute=None, verbose=True):
